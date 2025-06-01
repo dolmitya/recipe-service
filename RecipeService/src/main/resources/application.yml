@@ -1,0 +1,26 @@
+jwt:
+  secret: ${SECRET}
+  lifetime: 30m
+
+app:
+  base-url-auth: http://localhost:8189
+
+spring:
+  application:
+    name: meeting-site
+  jackson:
+    time-zone: UTC
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        enable_lazy_load_no_trans: true
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8189
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
