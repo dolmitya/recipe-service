@@ -1,2 +1,2 @@
 rootProject.name = "recipe-service"
-include("Model")
+include("Model", "RecipeService")
