@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: Fridge Recipes API
+  version: 1.1.0
+  description: |
+    API для управления продуктами пользователя, поиска рецептов, списка «Любимые рецепты»,
+    а также для регистрации и аутентификации пользователей с помощью JWT.
+servers:
+  - url: /api
+
+# 🔒 Глобальное требование JWT для всех защищённых методов
+security:
+  - bearerAuth: []
+
+paths:
+  ##########################
+  # AUTH
+  ##########################
+  /auth/register:
+    post:
+      summary: Регистрация нового пользователя
+      tags: [Auth]
+      security: []  # регистрация доступна без токена
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegisterInput'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+        '400':
+          description: Неверные данные запроса
+  /auth/login:
+    post:
+      summary: Аутентификация и получение JWT
+      tags: [Auth]
+      security: []  # логин доступен без токена
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginInput'
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthToken'
+        '401':
+          description: Неверный логин или пароль
+
+  ##########################
+  # PRODUCTS
+  ##########################
+  /products:
+    get:
+      summary: Получить все продукты в холодильнике
+      tags: [Products]
+      responses:
+        '200':
+          description: Список продуктов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      summary: Добавить новый продукт в холодильник
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Продукт создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+  /products/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Обновить продукт
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '200':
+          description: Обновленный продукт
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+    delete:
+      summary: Удалить продукт
+      tags: [Products]
+      responses:
+        '204':
+          description: Продукт удалён
+
+  ##########################
+  # RECIPES
+  ##########################
+  /recipes:
+    get:
+      summary: Получить список рецептов
+      tags: [Recipes]
+      parameters:
+        - name: category
+          in: query
+          description: Фильтр по категории
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Список рецептов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
+    post:
+      summary: Добавить новый рецепт
+      tags: [Recipes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeInput'
+      responses:
+        '201':
+          description: Рецепт создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+  /recipes/search:
+    get:
+      summary: Найти рецепты по списку продуктов
+      tags: [Recipes]
+      responses:
+        '200':
+          description: Подходящие рецепты
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
+  /recipes/{recipeId}/favorites:
+    parameters:
+      - name: recipeId
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      summary: Добавить рецепт в избранное
+      tags: [Favorites]
+      responses:
+        '201':
+          description: Рецепт добавлен в избранное
+    delete:
+      summary: Удалить рецепт из избранного
+      tags: [Favorites]
+      responses:
+        '204':
+          description: Рецепт удалён из избранного
+  /favorites:
+    get:
+      summary: Получить все избранные рецепты пользователя
+      tags: [Favorites]
+      responses:
+        '200':
+          description: Список избранных рецептов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ################# AUTH #################
+    UserRegisterInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        name:
+          type: string
+        phone_number:
+          type: string
+      required: [email, password]
+    UserLoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required: [email, password]
+    AuthToken:
+      type: object
+      properties:
+        token:
+          type: string
+      required: [token]
+
+    ################# DOMAIN #################
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+      required: [id, name]
+    ProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+      required: [name]
+    Ingredient:
+      type: object
+      properties:
+        productName:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+      required: [productName, quantity]
+    Recipe:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+      required: [id, title, ingredients]
+    RecipeInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+      required: [title, ingredients]
