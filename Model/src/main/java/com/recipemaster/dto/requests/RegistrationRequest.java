@@ -6,9 +6,12 @@ import jakarta.validation.constraints.NotNull;
 
 public record RegistrationRequest(
         @NotNull
-        @JsonProperty("username") String username,
+        @JsonProperty("email") String email,
 
         @NotNull
-        @JsonProperty("password") String password
+        @JsonProperty("password") String password,
+
+        @NotNull
+        @JsonProperty("fullName") String fullName
 ) {
 }

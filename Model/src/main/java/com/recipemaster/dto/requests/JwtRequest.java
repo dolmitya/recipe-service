@@ -1,4 +1,4 @@
 package com.recipemaster.dto.requests;
 
-public record JwtRequest(String username, String password) {
+public record JwtRequest(String email, String password) {
 }

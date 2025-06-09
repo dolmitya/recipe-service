@@ -1,5 +1,11 @@
 package com.recipemaster.recipeservice.controllers;
 
+import com.recipemaster.dto.UserDto;
+import com.recipemaster.dto.requests.JwtRequest;
+import com.recipemaster.dto.requests.RegistrationRequest;
+import com.recipemaster.dto.responses.JwtResponse;
+import com.recipemaster.enums.ErrorMessage;
+import com.recipemaster.exceptions.AppError;
 import com.recipemaster.recipeservice.services.UserService;
 import com.recipemaster.recipeservice.utils.JwtTokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,17 +45,17 @@ public class AuthController {
                     description = "Неверные учетные данные",
                     content = @Content(schema = @Schema(implementation = AppError.class)))
     })
-    @PostMapping("/auth")
+    @PostMapping("/login")
     public ResponseEntity<?> createAuthToken(@RequestBody JwtRequest jwtRequest) {
         try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(jwtRequest.username(),
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(jwtRequest.email(),
                     jwtRequest.password()));
         } catch (BadCredentialsException e) {
             return new ResponseEntity<>(new AppError(HttpStatus.UNAUTHORIZED.value(),
                     ErrorMessage.INCORRECT_USER_DATA.getMessage()), HttpStatus.UNAUTHORIZED);
         }
 
-        UserDetails userDetails = userService.loadUserByUsername(jwtRequest.username());
+        UserDetails userDetails = userService.loadUserByUsername(jwtRequest.email());
         String token = jwtTokenUtils.generateToken(userDetails);
 
         return ResponseEntity.ok(new JwtResponse(token));
@@ -71,60 +77,16 @@ public class AuthController {
                     description = "Пользователь уже существует или невалидные данные",
                     content = @Content(schema = @Schema(implementation = AppError.class)))
     })
-    @PostMapping("/signup")
+    @PostMapping("/register")
     public ResponseEntity<?> registration(@Validated @RequestBody RegistrationRequest registrationRequest) {
 
-        if (userService.findUserEntityByUsername(registrationRequest.username()).isPresent()) {
+        if (userService.findUserEntityByEmail(registrationRequest.email()).isPresent()) {
             return new ResponseEntity<>(new AppError(HttpStatus.BAD_REQUEST.value(), ErrorMessage.USER_EXISTS.getMessage()), HttpStatus.BAD_REQUEST);
         }
 
-        UserDto userDTO = new UserDto(registrationRequest.username(), registrationRequest.password());
+        UserDto userDTO = new UserDto(registrationRequest.email(), registrationRequest.password(), registrationRequest.fullName());
         userService.createNewUser(userDTO);
 
-        return createAuthToken(new JwtRequest(registrationRequest.username(), registrationRequest.password()));
-    }
-
-    @Operation(
-            summary = "Проверка токена",
-            description = "Проверяет валидность JWT токена"
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "Токен валиден",
-            content = @Content(schema = @Schema(implementation = Boolean.class)))
-    @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("/secured/checkToken")
-    public boolean checkToken() {
-        return true;
-    }
-
-    @Operation(
-            summary = "Получение текущего пользователя",
-            description = "Возвращает информацию о текущем авторизованном пользователе"
-    )
-    @ApiResponses({
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Информация о пользователе",
-                    content = @Content(schema = @Schema(implementation = GetUserResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Пользователь не найден",
-                    content = @Content(schema = @Schema(implementation = AppError.class))
-            )
-    })
-    @SecurityRequirement(name = "bearerAuth")
-    @GetMapping("secured/user")
-    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
-        String jwtToken = authHeader.replace("Bearer ", "");
-        String username = jwtTokenUtils.getUsername(jwtToken);
-
-        return userService.findUserEntityByUsername(username)
-                .map(user -> {
-                    GetUserResponse response = new GetUserResponse(user.getId(), user.getUsername());
-                    return ResponseEntity.ok(response);
-                })
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        return createAuthToken(new JwtRequest(registrationRequest.email(), registrationRequest.password()));
     }
 }

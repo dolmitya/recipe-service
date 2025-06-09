@@ -7,7 +7,7 @@ app:
 
 spring:
   application:
-    name: meeting-site
+    name: recipe-site
   jackson:
     time-zone: UTC
   jpa:
