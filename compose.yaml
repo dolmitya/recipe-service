@@ -19,8 +19,8 @@ services:
     depends_on:
       - postgres
     environment:
-      FLYWAY_USER: user
-      FLYWAY_PASSWORD: password
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: postgres
       FLYWAY_URL: jdbc:postgresql://postgres:5432/recipe-service
       FLYWAY_SCHEMAS: public
       FLYWAY_BASELINE_ON_MIGRATE: true

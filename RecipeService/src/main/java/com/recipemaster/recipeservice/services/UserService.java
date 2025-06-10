@@ -6,13 +6,12 @@ import com.recipemaster.entities.UserEntity;
 import com.recipemaster.enums.ErrorMessage;
 import com.recipemaster.recipeservice.repositories.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.security.core.userdetails.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -23,7 +22,6 @@ import static com.recipemaster.recipeservice.mappers.UserMapper.UserDTOToUserEnt
 
 @Service
 @RequiredArgsConstructor
-@Component
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
