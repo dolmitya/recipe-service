@@ -1,5 +1,5 @@
 jwt:
-  secret: ${SECRET}
+  secret: 54c68e011afedf44a5a743bca7819df159d9dfa0f54d6efe3825cc0caafd06322efdce681f6e4d80b41244a990b4dcaa244e973fac3f42a44e584f7a95930ec6173a3f234293045664cec444c792885864da0f8c823711124207b63bd9213fa6fb07a3d6a2d3c50de4d8c6b5acf3ec162f4d1aafa6bd6eb95c9e9cf2d0925a0ad50dd637e407fd45788ca379f44a70e2650ae46b8040ba3fd0fab7fdbedb470538fd41025651c20cbda29e7b24e3a1bff1eb843cbb82f581ace539a1be81e96451ca954f3dc105a1b6af02f91969df97359056f0b57048417c653a85a2a58c40c3e1d8732dbe78be85a638001eebc1a40ed0087c3632f5f6f92b6f38159930ea
   lifetime: 30m
 
 app:
@@ -7,7 +7,7 @@ app:
 
 spring:
   application:
-    name: meeting-site
+    name: recipe-site
   jackson:
     time-zone: UTC
   jpa:
@@ -16,7 +16,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         enable_lazy_load_no_trans: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
 
 server:
   port: 8189
