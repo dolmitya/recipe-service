@@ -2,7 +2,6 @@ package com.recipemaster.recipeservice.services;
 
 import com.recipemaster.dto.UserProductInfoDto;
 import com.recipemaster.entities.ProductEntity;
-import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
 import com.recipemaster.recipeservice.repositories.ProductRepository;
 import com.recipemaster.recipeservice.repositories.UserRepository;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.recipemaster.recipeservice.mappers.ProductMapper.productDTOToProductEntity;
 import static com.recipemaster.recipeservice.mappers.UsersProductMapper.toUsersProductEntity;
@@ -64,6 +62,6 @@ public class UsersProductService {
 
     public void deleteProduct(Long userId, Long productId) {
         // TODO: Удалить продукт (проверь, принадлежит ли продукт пользователю)
-        usersProductRepository.deleteByUserAndProductIdId(userId, productId);
+        usersProductRepository.deleteByUserAndProductId(userId, productId);
     }
 }

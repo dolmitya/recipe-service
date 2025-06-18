@@ -23,5 +23,5 @@ public interface UsersProductRepository extends CrudRepository<UsersProductEntit
 
     @Modifying
     @Query("DELETE FROM UsersProductEntity up WHERE up.user.id = :userId AND up.product.id = :productId")
-    void deleteByUserAndProductIdId(Long userId, Long productId);
+    void deleteByUserAndProductId(Long userId, Long productId);
 }
