@@ -37,35 +37,33 @@ public class UsersProductService {
 
     public UserProductInfoDto addProduct(Long userId, UserProductInfoDto productInputDto) {
         // TODO: Добавить продукт в холодильник (связать с пользователем) здесь везде нужен elastic его пока нет)
-        ProductEntity product = productRepository.findByName(productInputDto.getProductName());
-        if (product == null) {
-            productRepository.save(productDTOToProductEntity(productInputDto));
-
+        ProductEntity product = productRepository.save(productDTOToProductEntity(productInputDto));
+        UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, product.getId());
+        if (usersProduct == null) {
+            usersProductRepository.save(toUsersProductEntity(
+                    userRepository.findById(userId).orElse(null),
+                    product,
+                    productInputDto));
         } else {
-            UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, product.getId());
-            if (usersProduct == null) {
-                Optional<UserEntity> user = userRepository.findById(userId);
-                if (user.isEmpty()) {
-                    //throw new
-                }
-                usersProductRepository.save(toUsersProductEntity(user.get(), product, productInputDto));
-            } else {
-                usersProductRepository.updateProductQuantity(
-                        userId,
-                        product.getId(),
-                        productInputDto.getQuantity().add(usersProduct.getQuantity()));
-            }
+            usersProductRepository.updateProductQuantity(
+                    userId,
+                    product.getId(),
+                    productInputDto.getQuantity().add(usersProduct.getQuantity()));
         }
-        return null;
+        return productInputDto;
     }
 
     public UserProductInfoDto updateProduct(Long userId, Long productId, UserProductInfoDto productInputDto) {
         // TODO: Обновить продукт (проверь, принадлежит ли продукт пользователю)
-        return null;
+        usersProductRepository.updateProductQuantity(
+                userId,
+                productId,
+                productInputDto.getQuantity());
+        return productInputDto;
     }
 
     public void deleteProduct(Long userId, Long productId) {
         // TODO: Удалить продукт (проверь, принадлежит ли продукт пользователю)
-
+        usersProductRepository.deleteByUserAndProductIdId(userId, productId);
     }
 }

@@ -1,12 +1,12 @@
 package com.recipemaster.recipeservice.repositories;
 
 import com.recipemaster.entities.UsersProductEntity;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.List;
 
 @Repository
@@ -17,6 +17,11 @@ public interface UsersProductRepository extends CrudRepository<UsersProductEntit
     @Query("SELECT up FROM UsersProductEntity up WHERE up.user.id = :userId AND up.product.id = :productId")
     UsersProductEntity findProductById(Long userId, Long productId);
 
+    @Modifying
     @Query("UPDATE UsersProductEntity up SET up.quantity = :quantity WHERE up.user.id = :userId AND up.product.id = :productId")
-    List<UsersProductEntity> updateProductQuantity(Long userId, Long productId, BigDecimal quantity);
+    void updateProductQuantity(Long userId, Long productId, BigDecimal quantity);
+
+    @Modifying
+    @Query("DELETE FROM UsersProductEntity up WHERE up.user.id = :userId AND up.product.id = :productId")
+    void deleteByUserAndProductIdId(Long userId, Long productId);
 }
