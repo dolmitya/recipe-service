@@ -2,6 +2,7 @@ package com.recipemaster.recipeservice.services;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.recipemaster.recipeservice.mappers.RecipeMapper.recipeDTOToRecipeEntity;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +35,15 @@ public class RecipeService {
 
     public RecipeDto addRecipe(RecipeInputDto recipeDto) {
         // TODO: Добавить сохранение рецепта  здесь везде тоже нужен elastic, а  его пока нет)
-        return new RecipeDto(); // TODO: Вернуть сохранённый рецепт
+        RecipeEntity recipe = recipeDTOToRecipeEntity(recipeDto);
+        recipe.setIngredients(recipeDto.getIngredients().stream().map(rd -> {
+            IngredientEntity ingredient = new IngredientEntity();
+            ingredient.setRecipe(recipe);
+            ingredient.setQuantity(rd.getQuantity());
+            ingredient.setProduct(productRepository.findByName(rd.getProductName()));
+            return ingredient;
+        }).toList());
+        return RecipeDto.fromEntity(recipeRepository.save(recipe)); // TODO: Вернуть сохранённый рецепт
     }
 
     public List<RecipeDto> searchRecipesByUserProducts(Long userId) {
