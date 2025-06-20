@@ -1,8 +1,6 @@
-package com.recipemaster.recipeservice.mappers;
+package com.recipemaster.recipeservice.mapper;
 
-import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
-import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.RecipeEntity;
 
 public class RecipeMapper {

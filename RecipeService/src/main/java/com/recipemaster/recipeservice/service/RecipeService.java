@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.services;
+package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
@@ -6,17 +6,16 @@ import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
-import com.recipemaster.recipeservice.repositories.ProductRepository;
-import com.recipemaster.recipeservice.repositories.RecipeRepository;
-import com.recipemaster.recipeservice.repositories.UserRepository;
-import com.recipemaster.recipeservice.repositories.UsersProductRepository;
+import com.recipemaster.recipeservice.repository.ProductRepository;
+import com.recipemaster.recipeservice.repository.RecipeRepository;
+import com.recipemaster.recipeservice.repository.UserRepository;
+import com.recipemaster.recipeservice.repository.UsersProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static com.recipemaster.recipeservice.mappers.RecipeMapper.recipeDTOToRecipeEntity;
+import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToRecipeEntity;
 
 @Service
 @RequiredArgsConstructor

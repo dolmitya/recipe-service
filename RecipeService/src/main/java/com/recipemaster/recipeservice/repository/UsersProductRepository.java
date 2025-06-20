@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.repositories;
+package com.recipemaster.recipeservice.repository;
 
 import com.recipemaster.entities.UsersProductEntity;
 import org.springframework.data.jpa.repository.Modifying;
@@ -8,14 +8,14 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UsersProductRepository extends CrudRepository<UsersProductEntity, Long> {
-    @Query("SELECT up FROM UsersProductEntity up WHERE up.user.id = :userId")
     List<UsersProductEntity> findAllByUserId(Long userId);
 
     @Query("SELECT up FROM UsersProductEntity up WHERE up.user.id = :userId AND up.product.id = :productId")
-    UsersProductEntity findProductById(Long userId, Long productId);
+    Optional<UsersProductEntity> findProductById(Long userId, Long productId);
 
     @Modifying
     @Query("UPDATE UsersProductEntity up SET up.quantity = :quantity WHERE up.user.id = :userId AND up.product.id = :productId")

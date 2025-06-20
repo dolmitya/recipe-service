@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.mappers;
+package com.recipemaster.recipeservice.mapper;
 
 import com.recipemaster.dto.UserProductInfoDto;
 import com.recipemaster.entities.ProductEntity;

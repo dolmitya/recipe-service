@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.controllers;
+package com.recipemaster.recipeservice.controller;
 
 import com.recipemaster.dto.UserDto;
 import com.recipemaster.dto.requests.JwtRequest;
@@ -6,7 +6,7 @@ import com.recipemaster.dto.requests.RegistrationRequest;
 import com.recipemaster.dto.responses.JwtResponse;
 import com.recipemaster.enums.ErrorMessage;
 import com.recipemaster.exceptions.AppError;
-import com.recipemaster.recipeservice.services.UserService;
+import com.recipemaster.recipeservice.service.UserService;
 import com.recipemaster.recipeservice.utils.JwtTokenUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

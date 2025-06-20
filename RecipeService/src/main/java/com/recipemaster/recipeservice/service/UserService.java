@@ -1,10 +1,10 @@
-package com.recipemaster.recipeservice.services;
+package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.UserDetailsDto;
 import com.recipemaster.dto.UserDto;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.enums.ErrorMessage;
-import com.recipemaster.recipeservice.repositories.UserRepository;
+import com.recipemaster.recipeservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import static com.recipemaster.recipeservice.mappers.UserMapper.UserDTOToUserEntity;
+import static com.recipemaster.recipeservice.mapper.UserMapper.UserDTOToUserEntity;
 
 @Service
 @RequiredArgsConstructor

@@ -1,18 +1,21 @@
-package com.recipemaster.recipeservice.services;
+package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.UserProductInfoDto;
 import com.recipemaster.entities.ProductEntity;
+import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
-import com.recipemaster.recipeservice.repositories.ProductRepository;
-import com.recipemaster.recipeservice.repositories.UserRepository;
-import com.recipemaster.recipeservice.repositories.UsersProductRepository;
+import com.recipemaster.enums.ErrorMessage;
+import com.recipemaster.recipeservice.repository.ProductRepository;
+import com.recipemaster.recipeservice.repository.UserRepository;
+import com.recipemaster.recipeservice.repository.UsersProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
-import static com.recipemaster.recipeservice.mappers.ProductMapper.productDTOToProductEntity;
-import static com.recipemaster.recipeservice.mappers.UsersProductMapper.toUsersProductEntity;
+import static com.recipemaster.recipeservice.mapper.ProductMapper.productDTOToProductEntity;
+import static com.recipemaster.recipeservice.mapper.UsersProductMapper.toUsersProductEntity;
 
 @Service
 @RequiredArgsConstructor
@@ -27,27 +30,26 @@ public class UsersProductService {
         return usersProducts.stream()
                 .map(up -> new UserProductInfoDto(
                         up.getProduct().getName(),
-                        up.getQuantity(),
-                        up.getProduct().getUnit()
+                        up.getQuantity()
                 ))
                 .toList();
     }
 
     public UserProductInfoDto addProduct(Long userId, UserProductInfoDto productInputDto) {
         // TODO: Добавить продукт в холодильник (связать с пользователем) здесь везде нужен elastic его пока нет)
+        UserEntity user = userRepository.findById(userId).orElseThrow(
+                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
         ProductEntity product = productRepository.save(productDTOToProductEntity(productInputDto));
-        UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, product.getId());
-        if (usersProduct == null) {
-            usersProductRepository.save(toUsersProductEntity(
-                    userRepository.findById(userId).orElse(null),
-                    product,
-                    productInputDto));
-        } else {
-            usersProductRepository.updateProductQuantity(
-                    userId,
-                    product.getId(),
-                    productInputDto.getQuantity().add(usersProduct.getQuantity()));
-        }
+        UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, product.getId())
+                .orElse(usersProductRepository.save(toUsersProductEntity(
+                        user,
+                        product,
+                        productInputDto)));
+
+        usersProductRepository.updateProductQuantity(
+                userId,
+                product.getId(),
+                productInputDto.getQuantity().add(usersProduct.getQuantity()));
         return productInputDto;
     }
 
