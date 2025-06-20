@@ -1,6 +1,6 @@
 package com.recipemaster.recipeservice.config;
 
-import com.recipemaster.recipeservice.services.UserService;
+import com.recipemaster.recipeservice.service.UserService;
 import com.recipemaster.recipeservice.utils.JwtRequestFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

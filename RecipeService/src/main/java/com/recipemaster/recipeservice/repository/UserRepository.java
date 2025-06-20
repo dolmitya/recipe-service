@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.repositories;
+package com.recipemaster.recipeservice.repository;
 
 import com.recipemaster.entities.UserEntity;
 import jakarta.transaction.Transactional;

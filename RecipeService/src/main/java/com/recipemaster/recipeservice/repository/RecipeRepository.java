@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.repositories;
+package com.recipemaster.recipeservice.repository;
 
 import com.recipemaster.entities.RecipeEntity;
 import org.springframework.data.jpa.repository.JpaRepository;

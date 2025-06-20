@@ -1,4 +1,4 @@
-package com.recipemaster.recipeservice.mappers;
+package com.recipemaster.recipeservice.mapper;
 
 import com.recipemaster.dto.UserDetailsDto;
 import com.recipemaster.dto.UserDto;
