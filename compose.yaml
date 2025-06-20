@@ -29,5 +29,27 @@ services:
       - ./migrations/db.migration:/flyway/sql
     command: migrate
 
+  elasticsearch:
+    image: elasticsearch:9.0.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=changeme
+      - xpack.security.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./synonyms:/usr/share/elasticsearch/config/synonyms
+      - ./init-index.sh:/usr/local/bin/init-index.sh
+    command: [ "/bin/bash", "-c", "elasticsearch-plugin install --batch analysis-morphology && elasticsearch & sleep 20 && /usr/local/bin/init-index.sh && wait" ]
+
 volumes:
   postgres_data:
+  elasticsearch_data:
