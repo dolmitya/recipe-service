@@ -28,6 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 @Testcontainers
 @Transactional
@@ -99,8 +102,8 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.getAllRecipes(null);
 
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Test Recipe", result.getFirst().getTitle());
+        assertEquals(1, result.size());
+        assertEquals("Test Recipe", result.getFirst().getTitle());
     }
 
     @Test
@@ -108,8 +111,8 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.getAllRecipes("Test Category");
 
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Test Recipe", result.getFirst().getTitle());
+        assertEquals(1, result.size());
+        assertEquals("Test Recipe", result.getFirst().getTitle());
     }
 
     @Test
@@ -128,9 +131,9 @@ class RecipeServiceIntegrationTest {
         RecipeDto result = recipeService.addRecipe(inputDto);
 
         Assertions.assertNotNull(result.getId());
-        Assertions.assertEquals("New Recipe", result.getTitle());
-        Assertions.assertEquals(1, result.getIngredients().size());
-        Assertions.assertEquals("Test Product", result.getIngredients().getFirst().getProductName());
+        assertEquals("New Recipe", result.getTitle());
+        assertEquals(1, result.getIngredients().size());
+        assertEquals("Test Product", result.getIngredients().getFirst().getProductName());
     }
 
     @Test
@@ -144,8 +147,8 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Test Recipe", result.getFirst().getTitle());
+        assertEquals(1, result.size());
+        assertEquals("Test Recipe", result.getFirst().getTitle());
     }
 
     @Test
@@ -153,7 +156,7 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 
     @Test
@@ -162,8 +165,8 @@ class RecipeServiceIntegrationTest {
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
 
         UserEntity user = userRepository.findById(testUser.getId()).orElseThrow();
-        Assertions.assertEquals(1, user.getFavoriteRecipes().size());
-        Assertions.assertEquals("Test Recipe", user.getFavoriteRecipes().iterator().next().getTitle());
+        assertEquals(1, user.getFavoriteRecipes().size());
+        assertEquals("Test Recipe", user.getFavoriteRecipes().iterator().next().getTitle());
     }
 
     @Test
@@ -174,7 +177,7 @@ class RecipeServiceIntegrationTest {
         recipeService.removeRecipeFromFavorites(testUser.getId(), testRecipe.getId());
 
         UserEntity user = userRepository.findById(testUser.getId()).orElseThrow();
-        Assertions.assertTrue(user.getFavoriteRecipes().isEmpty());
+        assertTrue(user.getFavoriteRecipes().isEmpty());
     }
 
     @Test
@@ -184,8 +187,8 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.getUserFavorites(testUser.getId());
 
-        Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals("Test Recipe", result.getFirst().getTitle());
+        assertEquals(1, result.size());
+        assertEquals("Test Recipe", result.getFirst().getTitle());
     }
 
     @Test
@@ -193,7 +196,7 @@ class RecipeServiceIntegrationTest {
 
         List<RecipeDto> result = recipeService.getUserFavorites(testUser.getId());
 
-        Assertions.assertTrue(result.isEmpty());
+        assertTrue(result.isEmpty());
     }
 }
 
