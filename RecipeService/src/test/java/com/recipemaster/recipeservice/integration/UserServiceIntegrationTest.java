@@ -24,7 +24,6 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -137,8 +136,8 @@ class UserServiceIntegrationTest {
         UserDto newUser = new UserDto("new@example.com", "newpassword", "New User");
 
         userService.createNewUser(newUser);
-
         Optional<UserEntity> createdUser = userRepository.findByEmail("new@example.com");
+
         assertTrue(createdUser.isPresent());
         assertEquals("New User", createdUser.get().getFullName());
         assertTrue(passwordEncoder.matches("newpassword", createdUser.get().getPassword()));
@@ -148,9 +147,7 @@ class UserServiceIntegrationTest {
     void testCreationOfNewUserWithExistingEmail() {
         UserDto existingUser = new UserDto("test@example.com", "password", "Test User");
 
-        Exception exception = assertThrows(DataIntegrityViolationException.class,
+        assertThrows(DataIntegrityViolationException.class,
                 () -> userService.createNewUser(existingUser));
-
-        assertNotNull(exception);
     }
 }

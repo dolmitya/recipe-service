@@ -11,4 +11,5 @@ import java.math.BigDecimal;
 public class UserProductInfoDto {
     private String productName;
     private BigDecimal quantity;
+    private String unit;
 }

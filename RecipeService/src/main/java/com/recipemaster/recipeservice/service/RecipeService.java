@@ -6,6 +6,7 @@ import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
+import com.recipemaster.enums.ErrorMessage;
 import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
@@ -39,7 +40,8 @@ public class RecipeService {
             IngredientEntity ingredient = new IngredientEntity();
             ingredient.setRecipe(recipe);
             ingredient.setQuantity(rd.getQuantity());
-            ingredient.setProduct(productRepository.findByName(rd.getProductName()));
+            ingredient.setProduct(productRepository.findByName(rd.getProductName())
+                    .orElseThrow(() -> new NoSuchElementException(ErrorMessage.INCORRECT_PRODUCT_NAME.getMessage())));
             return ingredient;
         }).toList());
         return RecipeDto.fromEntity(recipeRepository.save(recipe)); // TODO: Вернуть сохранённый рецепт
