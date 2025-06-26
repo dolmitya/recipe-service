@@ -95,7 +95,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void getAllRecipes_WithNoCategory_ReturnsAllRecipes() {
+    void testReturnOfAllRecipesGivingNoCategory() {
 
         List<RecipeDto> result = recipeService.getAllRecipes(null);
 
@@ -104,7 +104,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void getAllRecipes_WithCategory_ReturnsFilteredRecipes() {
+    void testReturnOfAllRecipesWithCategory() {
 
         List<RecipeDto> result = recipeService.getAllRecipes("Test Category");
 
@@ -113,7 +113,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void addRecipe_SuccessfullyAddsRecipe() {
+    void testSuccessfulAdditionOfRecipe() {
 
         RecipeInputDto inputDto = new RecipeInputDto();
         inputDto.setTitle("New Recipe");
@@ -134,7 +134,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void searchRecipesByUserProducts_ReturnsMatchingRecipes() {
+    void testSearchOfRecipesByUserProducts() {
 
         UsersProductEntity usersProduct = new UsersProductEntity();
         usersProduct.setUser(testUser);
@@ -149,7 +149,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void searchRecipesByUserProducts_NoMatchingRecipes_ReturnsEmptyList() {
+    void testSearchOfRecipesByUserProductsWithoutMatchingRecipes() {
 
         List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
@@ -157,7 +157,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void addRecipeToFavorites_SuccessfullyAdds() {
+    void testSuccessfulAdditionOfRecipeToFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
 
@@ -167,7 +167,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void removeRecipeFromFavorites_SuccessfullyRemoves() {
+    void testSuccessfulRemovalOfRecipeFromFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
 
@@ -178,7 +178,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void getUserFavorites_ReturnsUserFavorites() {
+    void testReturnOfUserFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
 
@@ -189,7 +189,7 @@ class RecipeServiceIntegrationTest {
     }
 
     @Test
-    void getUserFavorites_NoFavorites_ReturnsEmptyList() {
+    void testReturnOfUserFavoritesWithoutMatchingRecipes() {
 
         List<RecipeDto> result = recipeService.getUserFavorites(testUser.getId());
 
