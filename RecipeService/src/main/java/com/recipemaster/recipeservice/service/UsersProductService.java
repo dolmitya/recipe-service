@@ -70,7 +70,7 @@ public class UsersProductService {
                 .orElseThrow(() -> new NoSuchElementException(ErrorMessage.USERS_PRODUCT_NOT_FOUND_BY_ID.getMessage()));
         usersProduct.setQuantity(productInputDto.getQuantity());
 
-        usersProduct.setQuantity(productInputDto.getQuantity());
+        usersProductRepository.save(usersProduct);
 
         return new UserProductInfoDto(
                 usersProduct.getProduct().getName(),

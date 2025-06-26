@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RecipeServiceTest {
+class RecipeServiceUnitTest {
 
     @Mock
     private RecipeRepository recipeRepository;
