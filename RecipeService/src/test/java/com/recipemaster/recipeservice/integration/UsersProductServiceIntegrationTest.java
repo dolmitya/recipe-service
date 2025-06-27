@@ -113,6 +113,7 @@ class UsersProductServiceIntegrationTest {
         assertEquals(new BigDecimal("2.0"), result.getQuantity());
 
         List<UsersProductEntity> userProducts = usersProductRepository.findAllByUserId(testUser.getId());
+
         assertEquals(2, userProducts.size());
     }
 
@@ -130,6 +131,7 @@ class UsersProductServiceIntegrationTest {
 
         UsersProductEntity updatedProduct = usersProductRepository.findProductById(testUser.getId(), testProduct.getId())
                 .orElseThrow();
+
         assertEquals(new BigDecimal("2.0"), updatedProduct.getQuantity());
     }
 
@@ -150,6 +152,7 @@ class UsersProductServiceIntegrationTest {
 
         UsersProductEntity updatedProduct = usersProductRepository.findProductById(testUser.getId(), testProduct.getId())
                 .orElseThrow();
+
         assertEquals(new BigDecimal("3.0"), updatedProduct.getQuantity());
     }
 

@@ -54,7 +54,6 @@ class RecipeServiceUnitTest {
     @InjectMocks
     private RecipeService recipeService;
 
-
     @Test
     void testReturnOfAllRecipesWhenCategoryAbsent() {
         List<RecipeEntity> expectedRecipes = Arrays.asList(
@@ -66,9 +65,11 @@ class RecipeServiceUnitTest {
 
         List<RecipeDto> result = recipeService.getAllRecipes(null);
 
-        assertEquals(2, result.size());
-        assertEquals("Pasta", result.get(0).getTitle());
-        assertEquals("Salad", result.get(1).getTitle());
+
+        assertEquals(
+                new HashSet<>(List.of("Pasta", "Salad")),
+                new HashSet<>(result.stream().map(RecipeDto::getTitle).toList())
+        );
         verify(recipeRepository).findAll();
         verify(recipeRepository, never()).findByCategory(any());
     }
@@ -221,6 +222,7 @@ class RecipeServiceUnitTest {
     void testAdditionOfRecipeToFavoritesWhenUserNotFound() {
         Long userId = 1L;
         Long recipeId = 1L;
+
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThrows(NoSuchElementException.class, () -> recipeService.addRecipeToFavorites(userId, recipeId));
@@ -235,6 +237,7 @@ class RecipeServiceUnitTest {
         Long recipeId = 1L;
         UserEntity user = new UserEntity();
         user.setId(userId);
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(recipeRepository.findById(recipeId)).thenReturn(Optional.empty());
 

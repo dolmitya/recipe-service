@@ -143,8 +143,8 @@ class RecipeServiceIntegrationTest {
         usersProduct.setUser(testUser);
         usersProduct.setProduct(testProduct);
         usersProduct.setQuantity(new BigDecimal(2));
-        usersProductRepository.save(usersProduct);
 
+        usersProductRepository.save(usersProduct);
         List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
         assertEquals(1, result.size());
@@ -163,8 +163,8 @@ class RecipeServiceIntegrationTest {
     void testSuccessfulAdditionOfRecipeToFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
-
         UserEntity user = userRepository.findById(testUser.getId()).orElseThrow();
+
         assertEquals(1, user.getFavoriteRecipes().size());
         assertEquals("Test Recipe", user.getFavoriteRecipes().iterator().next().getTitle());
     }
@@ -173,10 +173,9 @@ class RecipeServiceIntegrationTest {
     void testSuccessfulRemovalOfRecipeFromFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
-
         recipeService.removeRecipeFromFavorites(testUser.getId(), testRecipe.getId());
-
         UserEntity user = userRepository.findById(testUser.getId()).orElseThrow();
+
         assertTrue(user.getFavoriteRecipes().isEmpty());
     }
 
@@ -184,7 +183,6 @@ class RecipeServiceIntegrationTest {
     void testReturnOfUserFavorites() {
 
         recipeService.addRecipeToFavorites(testUser.getId(), testRecipe.getId());
-
         List<RecipeDto> result = recipeService.getUserFavorites(testUser.getId());
 
         assertEquals(1, result.size());
