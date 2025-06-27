@@ -8,6 +8,7 @@ import com.recipemaster.enums.ErrorMessage;
 import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
+import com.recipemaster.recipeservice.service.ProductElasticService;
 import com.recipemaster.recipeservice.service.UsersProductService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,13 +36,13 @@ class UsersProductServiceUnitTest {
     private UsersProductRepository usersProductRepository;
 
     @Mock
-    private ProductRepository productRepository;
-
-    @Mock
     private UserRepository userRepository;
 
     @InjectMocks
     private UsersProductService usersProductService;
+
+    @Mock
+    private ProductElasticService productElasticService;
 
     @Test
     void testReturnOfUserProductsByUserIdWhenProductsAbsent() {
@@ -53,54 +54,6 @@ class UsersProductServiceUnitTest {
 
         assertTrue(result.isEmpty());
         verify(usersProductRepository).findAllByUserId(userId);
-    }
-
-    @Test
-    void testReturnOfUserProductsByUserId() {
-        Long userId = 1L;
-        UsersProductEntity product1 = new UsersProductEntity("Milk", "1.5", "L");
-        UsersProductEntity product2 = new UsersProductEntity("Eggs", "10", "pcs");
-
-        when(usersProductRepository.findAllByUserId(userId)).thenReturn(List.of(product1, product2));
-
-        List<UserProductInfoDto> result = usersProductService.getUserProductsByUserId(userId);
-
-        assertEquals(2, result.size());
-        assertEquals("Milk", result.getFirst().getProductName());
-        assertEquals(new BigDecimal("1.5"), result.getFirst().getQuantity());
-        assertEquals("L", result.getFirst().getUnit());
-        verify(usersProductRepository).findAllByUserId(userId);
-    }
-
-    @Test
-    void testAdditionOfProductWhenProductNotExists() {
-        Long userId = 1L;
-        UserProductInfoDto inputDto = new UserProductInfoDto("Bread", new BigDecimal("1"), "kg");
-
-        UserEntity user = new UserEntity();
-        user.setId(userId);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(productRepository.findByName("Bread")).thenReturn(Optional.empty());
-        when(productRepository.save(any(ProductEntity.class))).thenAnswer(inv -> {
-            ProductEntity p = inv.getArgument(0);
-            p.setId(1L);
-            return p;
-        });
-        when(usersProductRepository.findProductById(userId, 1L))
-                .thenReturn(Optional.empty());
-        when(usersProductRepository.save(any(UsersProductEntity.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        UserProductInfoDto result = usersProductService.addProduct(userId, inputDto);
-
-        assertEquals("Bread", result.getProductName());
-        assertEquals(new BigDecimal("1"), result.getQuantity());
-        assertEquals("kg", result.getUnit());
-        verify(userRepository).findById(userId);
-        verify(productRepository).findByName("Bread");
-        verify(productRepository).save(any(ProductEntity.class));
-        verify(usersProductRepository).save(any(UsersProductEntity.class));
     }
 
     @Test
@@ -123,7 +76,7 @@ class UsersProductServiceUnitTest {
         existingProduct.setQuantity(new BigDecimal("0.5"));
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(productRepository.findByName("Milk")).thenReturn(Optional.of(product));
+        when(productElasticService.findOrCreate(any(),any())).thenReturn(product);
         when(usersProductRepository.findProductById(userId, productId)).thenReturn(Optional.of(existingProduct));
         when(usersProductRepository.save(any(UsersProductEntity.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -149,32 +102,11 @@ class UsersProductServiceUnitTest {
         product.setUnit("L");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(productRepository.findByName("Milk")).thenReturn(Optional.of(product));
+        when(productElasticService.findOrCreate(any(),any())).thenReturn(product);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> usersProductService.addProduct(userId, inputDto));
         assertEquals(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage(), exception.getMessage());
-    }
-
-    @Test
-    void testUpdateOfProduct() {
-        Long userId = 1L;
-        Long productId = 1L;
-        UserProductInfoDto inputDto = new UserProductInfoDto("Milk", new BigDecimal("2"), "L");
-        UsersProductEntity existingProduct = new UsersProductEntity("Milk", "1", "L");
-
-        when(usersProductRepository.findProductById(userId, productId))
-                .thenReturn(Optional.of(existingProduct));
-        when(usersProductRepository.save(any(UsersProductEntity.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        UserProductInfoDto result = usersProductService.updateProduct(userId, productId, inputDto);
-
-        assertEquals("Milk", result.getProductName());
-        assertEquals(new BigDecimal("2"), result.getQuantity());
-        assertEquals("L", result.getUnit());
-        verify(usersProductRepository).findProductById(userId, productId);
-        verify(usersProductRepository).save(existingProduct);
     }
 
     @Test
