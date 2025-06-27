@@ -2,12 +2,12 @@ package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.IngredientEntity;
+import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
-import com.recipemaster.entities.UsersProductEntity;
-import com.recipemaster.enums.ErrorMessage;
-import com.recipemaster.recipeservice.repository.ProductRepository;
+import com.recipemaster.recipeservice.mapper.RecipeMatchMapper;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToRecipeEntity;
 
@@ -24,7 +25,8 @@ public class RecipeService {
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
     private final UsersProductRepository usersProductRepository;
-    private final ProductRepository productRepository;
+    private final ProductElasticService productElasticService;
+    private static final int TOP_N = 5;
 
     public List<RecipeDto> getAllRecipes(String category) {
         List<RecipeEntity> recipes = (category == null || category.isEmpty())
@@ -34,34 +36,64 @@ public class RecipeService {
     }
 
     public RecipeDto addRecipe(RecipeInputDto recipeDto) {
-        // TODO: Добавить сохранение рецепта  здесь везде тоже нужен elastic, а  его пока нет)
-        RecipeEntity recipe = recipeDTOToRecipeEntity(recipeDto);
-        recipe.setIngredients(recipeDto.getIngredients().stream().map(rd -> {
-            IngredientEntity ingredient = new IngredientEntity();
-            ingredient.setRecipe(recipe);
-            ingredient.setQuantity(rd.getQuantity());
-            ingredient.setProduct(productRepository.findByName(rd.getProductName())
-                    .orElseThrow(() -> new NoSuchElementException(ErrorMessage.INCORRECT_PRODUCT_NAME.getMessage())));
-            return ingredient;
-        }).toList());
-        return RecipeDto.fromEntity(recipeRepository.save(recipe)); // TODO: Вернуть сохранённый рецепт
-    }
-
-    public List<RecipeDto> searchRecipesByUserProducts(Long userId) {
-        List<UsersProductEntity> userProducts = usersProductRepository.findAllByUserId(userId);
-        if (userProducts.isEmpty()) {
-            return Collections.emptyList();
+        if (recipeDto == null) {
+            throw new NoSuchElementException("recipe cannot be null");
         }
+        if (recipeDto.getIngredients() == null || recipeDto.getIngredients().isEmpty()) {
+            throw new NoSuchElementException("Ingredients not provided");
+        }
+        RecipeEntity recipe = recipeDTOToRecipeEntity(recipeDto);
+        List<IngredientEntity> ingredients = recipeDto.getIngredients().stream()
+                .map(rd -> {
+                    ProductEntity product = productElasticService.findOrCreate(
+                            rd.getProductName(),
+                            rd.getUnit()
+                    );
 
-        List<String> userProductNames = userProducts.stream()
-                .map(up -> up.getProduct().getName())
+                    IngredientEntity ing = new IngredientEntity();
+                    ing.setRecipe(recipe);
+                    ing.setQuantity(rd.getQuantity());
+                    ing.setProduct(product);
+                    return ing;
+                })
                 .toList();
 
-        List<RecipeEntity> allRecipes = recipeRepository.findAll();
+        recipe.setIngredients(ingredients);
+        RecipeEntity saved = recipeRepository.save(recipe);
+        return RecipeDto.fromEntity(saved);
+    }
 
-        //TODO: добавить поиск рецептов по продуктам
 
-        return new LinkedList<>();
+    public List<RecipeMatchResponse> searchRecipesByUserProducts(Long userId) {
+        Set<String> userProductNames = fetchUserProductNames(userId);
+        if (userProductNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return buildTopRecipeMatches(userProductNames);
+    }
+
+    private Set<String> fetchUserProductNames(Long userId) {
+        return usersProductRepository.findAllByUserId(userId).stream()
+                .map(up -> up.getProduct().getName())
+                .collect(Collectors.toSet());
+    }
+
+    private List<RecipeMatchResponse> buildTopRecipeMatches(Set<String> userProductNames) {
+        return recipeRepository.findAll().stream()
+                .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .limit(TOP_N)
+                .map(RecipeMatchMapper::toResponse)
+                .toList();
+    }
+
+    private int calculateMatchedCount(RecipeEntity recipe, Set<String> userProductNames) {
+        int total = recipe.getIngredients().size();
+        long missing = recipe.getIngredients().stream()
+                .map(i -> i.getProduct().getName())
+                .filter(name -> !userProductNames.contains(name))
+                .count();
+        return total - (int) missing;
     }
 
     public void addRecipeToFavorites(Long userId, Long recipeId) {

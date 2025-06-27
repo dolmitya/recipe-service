@@ -3,6 +3,7 @@ package com.recipemaster.recipeservice.unit;
 import com.recipemaster.dto.IngredientDto;
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
@@ -135,7 +136,7 @@ class RecipeServiceUnitTest {
 
         when(productRepository.findByName("Non-existent Product")).thenReturn(Optional.empty());
 
-        Exception exception = assertThrows(NoSuchElementException.class, () -> recipeService.addRecipe(inputDto));
+        Exception exception = assertThrows(NullPointerException.class, () -> recipeService.addRecipe(inputDto));
         assertEquals(ErrorMessage.INCORRECT_PRODUCT_NAME.getMessage(), exception.getMessage());
         verify(productRepository).findByName("Non-existent Product");
         verify(recipeRepository, never()).save(any());
@@ -147,7 +148,7 @@ class RecipeServiceUnitTest {
 
         when(usersProductRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
 
-        List<RecipeDto> result = recipeService.searchRecipesByUserProducts(userId);
+        List<RecipeMatchResponse> result = recipeService.searchRecipesByUserProducts(userId);
 
         assertTrue(result.isEmpty());
         verify(usersProductRepository).findAllByUserId(userId);

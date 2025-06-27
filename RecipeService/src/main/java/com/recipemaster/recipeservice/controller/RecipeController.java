@@ -2,6 +2,7 @@ package com.recipemaster.recipeservice.controller;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.exceptions.AppError;
 import com.recipemaster.recipeservice.service.RecipeService;
@@ -65,7 +66,7 @@ public class RecipeController {
     public ResponseEntity<?> searchRecipes(@RequestHeader("Authorization") String authHeader) {
         try {
             UserEntity user = getUserFromHeader(authHeader);
-            List<RecipeDto> recipes = recipeService.searchRecipesByUserProducts(user.getId());
+            List<RecipeMatchResponse> recipes = recipeService.searchRecipesByUserProducts(user.getId());
             return ResponseEntity.ok(recipes);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

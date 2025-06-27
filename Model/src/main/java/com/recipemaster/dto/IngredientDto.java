@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 @Data
 public class IngredientDto {
     private String productName;
+    private String unit;
     private BigDecimal quantity;
 
     public static IngredientDto fromEntity(IngredientEntity entity) {

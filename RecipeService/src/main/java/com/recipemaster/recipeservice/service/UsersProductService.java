@@ -14,15 +14,14 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import static com.recipemaster.recipeservice.mapper.ProductMapper.productDTOToProductEntity;
 import static com.recipemaster.recipeservice.mapper.UsersProductMapper.toUsersProductEntity;
 
 @Service
 @RequiredArgsConstructor
 public class UsersProductService {
     private final UsersProductRepository usersProductRepository;
-    private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductElasticService productElasticService;
 
     public List<UserProductInfoDto> getUserProductsByUserId(Long userId) {
         List<UsersProductEntity> usersProducts = usersProductRepository.findAllByUserId(userId);
@@ -37,12 +36,13 @@ public class UsersProductService {
     }
 
     public UserProductInfoDto addProduct(Long userId, UserProductInfoDto productInputDto) {
-        // TODO: Добавить продукт в холодильник (связать с пользователем) здесь везде нужен elastic его пока нет)
         UserEntity user = userRepository.findById(userId).orElseThrow(
                 () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
 
-        ProductEntity product = productRepository.findByName(productInputDto.getProductName())
-                .orElseGet(() -> productRepository.save(productDTOToProductEntity(productInputDto)));
+        ProductEntity product = productElasticService.findOrCreate(
+                productInputDto.getProductName(),
+                productInputDto.getUnit()
+        );
 
         if (product.getUnit() != null && !product.getUnit().equals(productInputDto.getUnit())) {
             throw new IllegalArgumentException(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage());
@@ -65,7 +65,6 @@ public class UsersProductService {
     }
 
     public UserProductInfoDto updateProduct(Long userId, Long productId, UserProductInfoDto productInputDto) {
-        // TODO: Обновить продукт (проверь, принадлежит ли продукт пользователю)
         UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, productId)
                 .orElseThrow(() -> new NoSuchElementException(ErrorMessage.USERS_PRODUCT_NOT_FOUND_BY_ID.getMessage()));
         usersProduct.setQuantity(productInputDto.getQuantity());
@@ -80,7 +79,6 @@ public class UsersProductService {
     }
 
     public void deleteProduct(Long userId, Long productId) {
-        // TODO: Удалить продукт (проверь, принадлежит ли продукт пользователю)
         usersProductRepository.deleteByUserAndProductId(userId, productId);
     }
 }
