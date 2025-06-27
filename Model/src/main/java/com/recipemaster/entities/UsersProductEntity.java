@@ -26,4 +26,14 @@ public class UsersProductEntity {
 
     @Column(nullable = false, precision = 10, scale = 3)
     private BigDecimal quantity;
+
+    public UsersProductEntity(String name, String quantity, String unit) {
+        ProductEntity product = new ProductEntity();
+        product.setName(name);
+        product.setUnit(unit);
+
+        UsersProductEntity usersProduct = new UsersProductEntity();
+        usersProduct.setProduct(product);
+        usersProduct.setQuantity(new BigDecimal(quantity));
+    }
 }

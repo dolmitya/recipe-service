@@ -32,14 +32,14 @@ public class UserService implements UserDetailsService {
 
     public UserDetailsDto findById(Long id) {
         UserEntity user = userRepository.findById(id).orElseThrow(
-                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
+                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage(id)));
         return new UserDetailsDto(user.getId(), user.getEmail());
 
     }
 
     public UserDetailsDto findByEmail(String email) {
         UserEntity user = userRepository.findByEmail(email).orElseThrow(
-                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
+                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_EMAIL.getMessage()));
         return new UserDetailsDto(user.getId(), user.getEmail());
     }
 
@@ -57,7 +57,9 @@ public class UserService implements UserDetailsService {
     }
 
     public void createNewUser(UserDto userDTO) {
-        UserDto userWithPasswordDTO = new UserDto(userDTO.email(), passwordEncoder.encode(userDTO.password()), userDTO.fullName());
+        UserDto userWithPasswordDTO = new UserDto(userDTO.email(),
+                passwordEncoder.encode(userDTO.password()),
+                userDTO.fullName());
         UserEntity userEntity = UserDTOToUserEntity(userWithPasswordDTO);
         userRepository.save(userEntity);
     }
