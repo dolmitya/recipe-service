@@ -64,7 +64,7 @@ public class RecipeService {
     }
 
 
-    public List<RecipeMatchResponse> searchRecipesByUserProducts(Long userId) {
+    public List<RecipeDto> searchRecipesByUserProducts(Long userId) {
         Set<String> userProductNames = fetchUserProductNames(userId);
         if (userProductNames.isEmpty()) {
             return Collections.emptyList();
@@ -78,12 +78,12 @@ public class RecipeService {
                 .collect(Collectors.toSet());
     }
 
-    private List<RecipeMatchResponse> buildTopRecipeMatches(Set<String> userProductNames) {
+    private List<RecipeDto> buildTopRecipeMatches(Set<String> userProductNames) {
         return recipeRepository.findAll().stream()
                 .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .limit(TOP_N)
-                .map(RecipeMatchMapper::toResponse)
+                .map(recipe -> RecipeDto.fromEntity(recipe.getKey()))
                 .toList();
     }
 

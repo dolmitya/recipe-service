@@ -28,6 +28,7 @@ public class UsersProductService {
 
         return usersProducts.stream()
                 .map(up -> new UserProductInfoDto(
+                        up.getProduct().getId(),
                         up.getProduct().getName(),
                         up.getQuantity(),
                         up.getProduct().getUnit()
@@ -40,7 +41,7 @@ public class UsersProductService {
                 () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
 
         ProductEntity product = productElasticService.findOrCreate(
-                productInputDto.getProductName(),
+                productInputDto.getName(),
                 productInputDto.getUnit()
         );
 
@@ -58,6 +59,7 @@ public class UsersProductService {
         UsersProductEntity savedProduct = usersProductRepository.save(usersProduct);
 
         return new UserProductInfoDto(
+                savedProduct.getProduct().getId(),
                 savedProduct.getProduct().getName(),
                 savedProduct.getQuantity(),
                 savedProduct.getProduct().getUnit()
@@ -72,6 +74,7 @@ public class UsersProductService {
         usersProductRepository.save(usersProduct);
 
         return new UserProductInfoDto(
+                usersProduct.getProduct().getId(),
                 usersProduct.getProduct().getName(),
                 usersProduct.getQuantity(),
                 usersProduct.getProduct().getUnit()

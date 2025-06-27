@@ -66,7 +66,7 @@ public class RecipeController {
     public ResponseEntity<?> searchRecipes(@RequestHeader("Authorization") String authHeader) {
         try {
             UserEntity user = getUserFromHeader(authHeader);
-            List<RecipeMatchResponse> recipes = recipeService.searchRecipesByUserProducts(user.getId());
+            List<RecipeDto> recipes = recipeService.searchRecipesByUserProducts(user.getId());
             return ResponseEntity.ok(recipes);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
