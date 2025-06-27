@@ -6,6 +6,10 @@ app:
   base-url-auth: http://localhost:8189
 
 spring:
+  elasticsearch:
+    uris: http://localhost:9200
+    username: elastic
+    password: changeme
   application:
     name: recipe-site
   jackson:

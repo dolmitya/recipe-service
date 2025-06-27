@@ -29,5 +29,38 @@ services:
       - ./migrations/db.migration:/flyway/sql
     command: migrate
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.0.2
+    container_name: elasticsearch
+
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+      - ELASTIC_PASSWORD=changeme
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./synonyms:/usr/share/elasticsearch/config/synonyms:ro
+      - ./hunspell:/usr/share/elasticsearch/config/hunspell:ro
+
+  init-index:
+    image: curlimages/curl:latest
+    depends_on:
+      - elasticsearch
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "sleep 20 && sh /scripts/init-index.sh"
+    volumes:
+      - ./init-index.sh:/scripts/init-index.sh
+
 volumes:
   postgres_data:
+  elasticsearch_data:
