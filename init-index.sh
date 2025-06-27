@@ -1,27 +1,19 @@
 #!/bin/bash
 
-curl -X PUT "localhost:9200/products" -H 'Content-Type: application/json' -d'
+curl -X PUT "http://elasticsearch:9200/products" -H 'Content-Type: application/json' -d'
 {
   "settings": {
     "analysis": {
       "filter": {
-        "russian_morphology": {
-          "type": "morphology",
-          "language": "russian"
-        },
-        "synonym_filter": {
+        "ru_synonyms": {
           "type": "synonym",
-          "synonyms_path": "synonyms/synonyms.txt"
+          "synonyms_path": "synonyms/ru_synonyms.txt"
         }
       },
       "analyzer": {
-        "custom_russian": {
+        "ru_synonym_analyzer": {
           "tokenizer": "standard",
-          "filter": [
-            "lowercase",
-            "russian_morphology",
-            "synonym_filter"
-          ]
+          "filter": ["lowercase", "ru_synonyms"]
         }
       }
     }
@@ -30,9 +22,11 @@ curl -X PUT "localhost:9200/products" -H 'Content-Type: application/json' -d'
     "properties": {
       "name": {
         "type": "text",
-        "analyzer": "custom_russian"
+        "analyzer": "ru_synonym_analyzer"
+      },
+      "unit": {
+        "type": "keyword"
       }
     }
   }
-}
-'
+}'

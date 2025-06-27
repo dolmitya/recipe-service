@@ -7,7 +7,7 @@ app:
 
 spring:
   elasticsearch:
-    hosts: http://localhost:9200
+    uris: http://localhost:9200
     username: elastic
     password: changeme
   application:

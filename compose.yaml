@@ -47,8 +47,16 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
       - ./synonyms:/usr/share/elasticsearch/config/synonyms
-      - ./init-index.sh:/usr/local/bin/init-index.sh
-    command: [ "/bin/bash", "-c", "elasticsearch-plugin install --batch analysis-morphology && elasticsearch & sleep 20 && /usr/local/bin/init-index.sh && wait" ]
+
+  init-index:
+    image: curlimages/curl:latest
+    depends_on:
+      - elasticsearch
+    entrypoint: [ "/bin/sh", "-c" ]
+    command: >
+      "sleep 20 && sh /scripts/init-index.sh"
+    volumes:
+      - ./init-index.sh:/scripts/init-index.sh
 
 volumes:
   postgres_data:
