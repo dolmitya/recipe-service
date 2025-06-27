@@ -30,4 +30,12 @@ public class RecipeEntity {
 
     @ManyToMany(mappedBy = "favoriteRecipes")
     private Set<UserEntity> favoritedByUsers = new HashSet<>();
+
+    public RecipeEntity() {}
+
+    public RecipeEntity(String title, String category, String description) {
+        this.title = title;
+        this.category = category;
+        this.description = description;
+    }
 }

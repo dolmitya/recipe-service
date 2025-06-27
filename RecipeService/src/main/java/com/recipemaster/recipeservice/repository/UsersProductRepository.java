@@ -18,10 +18,6 @@ public interface UsersProductRepository extends CrudRepository<UsersProductEntit
     Optional<UsersProductEntity> findProductById(Long userId, Long productId);
 
     @Modifying
-    @Query("UPDATE UsersProductEntity up SET up.quantity = :quantity WHERE up.user.id = :userId AND up.product.id = :productId")
-    void updateProductQuantity(Long userId, Long productId, BigDecimal quantity);
-
-    @Modifying
     @Query("DELETE FROM UsersProductEntity up WHERE up.user.id = :userId AND up.product.id = :productId")
     void deleteByUserAndProductId(Long userId, Long productId);
 }
