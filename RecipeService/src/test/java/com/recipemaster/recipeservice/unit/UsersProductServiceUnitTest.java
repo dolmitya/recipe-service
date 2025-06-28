@@ -5,7 +5,6 @@ import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
 import com.recipemaster.enums.ErrorMessage;
-import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
 import com.recipemaster.recipeservice.service.ProductElasticService;
@@ -60,7 +59,7 @@ class UsersProductServiceUnitTest {
     void testAdditionOfProductWhenProductExists() {
         Long userId = 1L;
         Long productId = 1L;
-        UserProductInfoDto inputDto = new UserProductInfoDto("Milk", new BigDecimal("1"), "L");
+        UserProductInfoDto inputDto = new UserProductInfoDto(1L, "Milk", new BigDecimal("1"), "L");
 
         UserEntity user = new UserEntity();
         user.setId(userId);
@@ -83,7 +82,7 @@ class UsersProductServiceUnitTest {
 
         UserProductInfoDto result = usersProductService.addProduct(userId, inputDto);
 
-        assertEquals("Milk", result.getProductName());
+        assertEquals("Milk", result.getName());
         assertEquals(new BigDecimal("1.5"), result.getQuantity());
         assertEquals("L", result.getUnit());
         verify(usersProductRepository).save(existingProduct);
@@ -92,7 +91,7 @@ class UsersProductServiceUnitTest {
     @Test
     void testAdditionOfProductWhenUnitMismatch() {
         Long userId = 1L;
-        UserProductInfoDto inputDto = new UserProductInfoDto("Milk", new BigDecimal("1"), "kg");
+        UserProductInfoDto inputDto = new UserProductInfoDto(1L, "Milk", new BigDecimal("1"), "kg");
 
         UserEntity user = new UserEntity();
         user.setId(userId);
@@ -113,7 +112,7 @@ class UsersProductServiceUnitTest {
     void testUpdateOfProductWhenProductNotFound() {
         Long userId = 1L;
         Long productId = 99L;
-        UserProductInfoDto inputDto = new UserProductInfoDto("Milk", new BigDecimal("2"), "L");
+        UserProductInfoDto inputDto = new UserProductInfoDto(1L, "Milk", new BigDecimal("2"), "L");
 
         when(usersProductRepository.findProductById(userId, productId)).thenReturn(Optional.empty());
         

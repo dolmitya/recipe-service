@@ -3,12 +3,9 @@ package com.recipemaster.recipeservice.unit;
 import com.recipemaster.dto.IngredientDto;
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
-import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
-import com.recipemaster.enums.ErrorMessage;
-import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
@@ -49,9 +46,6 @@ class RecipeServiceUnitTest {
 
     @Mock
     private UsersProductRepository usersProductRepository;
-
-    @Mock
-    private ProductRepository productRepository;
 
     @InjectMocks
     private RecipeService recipeService;
@@ -137,7 +131,7 @@ class RecipeServiceUnitTest {
 
         when(usersProductRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
 
-        List<RecipeMatchResponse> result = recipeService.searchRecipesByUserProducts(userId);
+        List<RecipeDto> result = recipeService.searchRecipesByUserProducts(userId);
 
         assertTrue(result.isEmpty());
         verify(usersProductRepository).findAllByUserId(userId);
