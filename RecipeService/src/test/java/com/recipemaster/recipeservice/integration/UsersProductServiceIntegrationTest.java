@@ -87,7 +87,7 @@ class UsersProductServiceIntegrationTest {
         List<UserProductInfoDto> result = usersProductService.getUserProductsByUserId(testUser.getId());
 
         assertEquals(1, result.size());
-        assertEquals("Test Product", result.getFirst().getProductName());
+        assertEquals("Test Product", result.getFirst().getName());
         assertEquals(new BigDecimal("1.5"), result.getFirst().getQuantity());
     }
 

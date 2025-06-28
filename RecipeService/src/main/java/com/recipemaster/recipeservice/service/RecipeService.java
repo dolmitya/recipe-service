@@ -11,6 +11,7 @@ import com.recipemaster.recipeservice.mapper.RecipeMatchMapper;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -81,6 +82,7 @@ public class RecipeService {
     private List<RecipeDto> buildTopRecipeMatches(Set<String> userProductNames) {
         return recipeRepository.findAll().stream()
                 .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
+                .filter(recipe -> recipe.getValue()>0)
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .limit(TOP_N)
                 .map(recipe -> RecipeDto.fromEntity(recipe.getKey()))
@@ -96,13 +98,15 @@ public class RecipeService {
         return total - (int) missing;
     }
 
-    public void addRecipeToFavorites(Long userId, Long recipeId) {
+    @Transactional
+    public RecipeDto addRecipeToFavorites(Long userId, Long recipeId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found"));
         RecipeEntity recipe = recipeRepository.findById(recipeId)
                 .orElseThrow(() -> new NoSuchElementException("Recipe not found"));
         user.getFavoriteRecipes().add(recipe);
         userRepository.save(user);
+        return RecipeDto.fromEntity(recipe);
     }
 
     public void removeRecipeFromFavorites(Long userId, Long recipeId) {

@@ -3,10 +3,7 @@ package com.recipemaster.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "recipe")
@@ -29,7 +26,7 @@ public class RecipeEntity {
     private List<IngredientEntity> ingredients = new ArrayList<>();
 
     @ManyToMany(mappedBy = "favoriteRecipes")
-    private Set<UserEntity> favoritedByUsers = new HashSet<>();
+    private List<UserEntity> favoritedByUsers = new LinkedList<>();
 
     public RecipeEntity() {}
 
