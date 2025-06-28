@@ -20,7 +20,8 @@ public class RecipeGenerator {
     private final Random rnd = new Random();
 
     private static final List<String> SAMPLE_PRODUCTS = List.of(
-            "молоко", "яйца", "мука", "сахар", "сливочное масло", "соль", "помидор", "сыр", "лук", "чеснок"
+            "молоко", "яйца", "мука", "сахар", "сливочное масло", "соль", "помидор", "сыр", "лук", "чеснок",
+            "куркума","банан","курица","свинина","бекон","огурец"
     );
     private static final List<String> SAMPLE_UNITS = List.of(
             "шт", "г", "кг", "мл", "л", "ст.л.", "ч.л."
