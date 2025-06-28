@@ -5,7 +5,6 @@ import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.entities.UsersProductEntity;
 import com.recipemaster.enums.ErrorMessage;
-import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
 import lombok.RequiredArgsConstructor;

@@ -2,12 +2,10 @@ package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
-import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
-import com.recipemaster.recipeservice.mapper.RecipeMatchMapper;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
@@ -15,7 +13,12 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToRecipeEntity;
