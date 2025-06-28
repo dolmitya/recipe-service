@@ -36,6 +36,7 @@ public class UsersProductService {
     }
 
     public UserProductInfoDto addProduct(Long userId, UserProductInfoDto productInputDto) {
+        productInputDto.setName(productInputDto.getName().toLowerCase());
         UserEntity user = userRepository.findById(userId).orElseThrow(
                 () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
 
@@ -45,7 +46,7 @@ public class UsersProductService {
         );
 
         if (product.getUnit() != null && !product.getUnit().equals(productInputDto.getUnit())) {
-            throw new IllegalArgumentException(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage());
+            throw new IllegalArgumentException(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage() + product.getUnit());
         }
 
         UsersProductEntity usersProduct = usersProductRepository.findProductById(userId, product.getId())

@@ -105,7 +105,7 @@ class UsersProductServiceUnitTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> usersProductService.addProduct(userId, inputDto));
-        assertEquals(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage(), exception.getMessage());
+        assertEquals(ErrorMessage.INCORRECT_PRODUCT_UNIT.getMessage()+"L", exception.getMessage());
     }
 
     @Test

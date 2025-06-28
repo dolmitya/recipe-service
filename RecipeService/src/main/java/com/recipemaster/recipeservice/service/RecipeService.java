@@ -2,10 +2,7 @@ package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
-import com.recipemaster.entities.IngredientEntity;
-import com.recipemaster.entities.ProductEntity;
-import com.recipemaster.entities.RecipeEntity;
-import com.recipemaster.entities.UserEntity;
+import com.recipemaster.entities.*;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
@@ -13,12 +10,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToRecipeEntity;
@@ -50,7 +43,7 @@ public class RecipeService {
         List<IngredientEntity> ingredients = recipeDto.getIngredients().stream()
                 .map(rd -> {
                     ProductEntity product = productElasticService.findOrCreate(
-                            rd.getProductName(),
+                            rd.getProductName().toLowerCase(),
                             rd.getUnit()
                     );
 
@@ -69,20 +62,23 @@ public class RecipeService {
 
 
     public List<RecipeDto> searchRecipesByUserProducts(Long userId) {
-        Set<String> userProductNames = fetchUserProductNames(userId);
+        Map<String, BigDecimal> userProductNames = fetchUserProductNames(userId);
         if (userProductNames.isEmpty()) {
             return Collections.emptyList();
         }
         return buildTopRecipeMatches(userProductNames);
     }
 
-    private Set<String> fetchUserProductNames(Long userId) {
+    private Map<String, BigDecimal> fetchUserProductNames(Long userId) {
         return usersProductRepository.findAllByUserId(userId).stream()
-                .map(up -> up.getProduct().getName())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(
+                        up -> up.getProduct().getName(),      // ключ — название продукта
+                        UsersProductEntity::getQuantity,
+                        BigDecimal::add
+                ));
     }
 
-    private List<RecipeDto> buildTopRecipeMatches(Set<String> userProductNames) {
+    private List<RecipeDto> buildTopRecipeMatches(Map<String, BigDecimal> userProductNames) {
         return recipeRepository.findAll().stream()
                 .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
                 .filter(recipe -> recipe.getValue()>0)
@@ -92,13 +88,21 @@ public class RecipeService {
                 .toList();
     }
 
-    private int calculateMatchedCount(RecipeEntity recipe, Set<String> userProductNames) {
-        int total = recipe.getIngredients().size();
-        long missing = recipe.getIngredients().stream()
-                .map(i -> i.getProduct().getName())
-                .filter(name -> !userProductNames.contains(name))
-                .count();
-        return total - (int) missing;
+    private Double calculateMatchedCount(RecipeEntity recipe, Map<String, BigDecimal> userProductNames) {
+        return recipe.getIngredients().stream()
+                .mapToDouble(i -> {
+                    BigDecimal needed = i.getQuantity();
+                    BigDecimal available = userProductNames.getOrDefault(
+                            i.getProduct().getName(),
+                            BigDecimal.ZERO
+                    );
+                    if (needed.compareTo(BigDecimal.ZERO) <= 0) {
+                        return 0d;
+                    }
+                    double fraction = available.doubleValue() / needed.doubleValue();
+                    return Math.min(1d, fraction);
+                })
+                .sum();
     }
 
     @Transactional
