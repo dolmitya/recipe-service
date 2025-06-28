@@ -2,6 +2,8 @@ package com.recipemaster.recipeservice.controller;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
+import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.exceptions.AppError;
 import com.recipemaster.recipeservice.service.RecipeService;
@@ -81,8 +83,8 @@ public class RecipeController {
     public ResponseEntity<?> addFavorite(@PathVariable Long recipeId, @RequestHeader("Authorization") String authHeader) {
         try {
             UserEntity user = getUserFromHeader(authHeader);
-            recipeService.addRecipeToFavorites(user.getId(), recipeId);
-            return new ResponseEntity<>(HttpStatus.CREATED);
+            RecipeDto recipe = recipeService.addRecipeToFavorites(user.getId(), recipeId);
+            return new ResponseEntity<>(recipe, HttpStatus.CREATED);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new AppError(HttpStatus.NOT_FOUND.value(), e.getMessage()));

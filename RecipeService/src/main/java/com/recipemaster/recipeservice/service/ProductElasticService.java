@@ -1,16 +1,15 @@
 package com.recipemaster.recipeservice.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch.core.IndexResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import com.recipemaster.ProductElasticDocument;
 import com.recipemaster.entities.ProductEntity;
-import com.recipemaster.recipeservice.repository.ProductElasticRepository;
 import com.recipemaster.recipeservice.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,8 +19,18 @@ public class ProductElasticService {
     private final ElasticsearchClient elasticsearchClient;
 
     public ProductEntity findOrCreate(String name, String unit) {
+        ProductEntity fromEs = searchInElastic(name, unit);
+        if (fromEs != null) {
+            return fromEs;
+        }
+
+        ProductEntity saved = createProductInDb(name, unit);
+        indexInElastic(saved);
+        return saved;
+    }
+
+    private ProductEntity searchInElastic(String name, String unit) {
         try {
-            // Поиск с учетом синонимов и морфологии
             SearchResponse<ProductElasticDocument> response = elasticsearchClient.search(s -> s
                             .index("products")
                             .query(q -> q
@@ -34,33 +43,33 @@ public class ProductElasticService {
             );
 
             if (!response.hits().hits().isEmpty()) {
-                ProductElasticDocument match = response.hits().hits().get(0).source();
-                return productRepository.findByNameIgnoreCase(match.getName())
+                ProductElasticDocument hit = response.hits().hits().get(0).source();
+                return productRepository
+                        .findByNameIgnoreCase(hit.getName())
                         .orElseGet(() -> {
-                            ProductEntity newProduct = new ProductEntity();
-                            newProduct.setName(match.getName());
-                            newProduct.setUnit(unit);
-                            return productRepository.save(newProduct);
+                            ProductEntity e = new ProductEntity();
+                            e.setName(hit.getName());
+                            e.setUnit(unit);
+                            return productRepository.save(e);
                         });
             }
-
         } catch (IOException e) {
             throw new RuntimeException("Ошибка при поиске в Elasticsearch", e);
         }
+        return null;
+    }
 
-        // Создание нового продукта
+    private ProductEntity createProductInDb(String name, String unit) {
         ProductEntity product = new ProductEntity();
         product.setName(name);
         product.setUnit(unit);
-        ProductEntity saved = productRepository.save(product);
+        return productRepository.save(product);
+    }
 
-        // Индексация в Elasticsearch
-        ProductElasticDocument doc = new ProductElasticDocument();
-        doc.setId(saved.getId().toString());
-        doc.setName(saved.getName());
-        doc.setUnit(saved.getUnit());
+    private void indexInElastic(ProductEntity product) {
+        ProductElasticDocument doc = buildDocument(product);
         try {
-            elasticsearchClient.index(i -> i
+            IndexResponse resp = elasticsearchClient.index(i -> i
                     .index("products")
                     .id(doc.getId())
                     .document(doc)
@@ -68,7 +77,13 @@ public class ProductElasticService {
         } catch (IOException e) {
             throw new RuntimeException("Ошибка при индексации в Elasticsearch", e);
         }
+    }
 
-        return saved;
+    private ProductElasticDocument buildDocument(ProductEntity product) {
+        ProductElasticDocument doc = new ProductElasticDocument();
+        doc.setId(product.getId().toString());
+        doc.setName(product.getName());
+        doc.setUnit(product.getUnit());
+        return doc;
     }
 }

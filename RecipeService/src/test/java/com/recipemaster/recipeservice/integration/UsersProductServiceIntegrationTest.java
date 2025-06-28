@@ -87,7 +87,7 @@ class UsersProductServiceIntegrationTest {
         List<UserProductInfoDto> result = usersProductService.getUserProductsByUserId(testUser.getId());
 
         assertEquals(1, result.size());
-        assertEquals("Test Product", result.getFirst().getProductName());
+        assertEquals("Test Product", result.getFirst().getName());
         assertEquals(new BigDecimal("1.5"), result.getFirst().getQuantity());
     }
 
@@ -103,13 +103,13 @@ class UsersProductServiceIntegrationTest {
     @Test
     void testAdditionWhenProductIsNew() {
         UserProductInfoDto newProduct = new UserProductInfoDto(
-                "New Product",
+                "New Item",
                 new BigDecimal("2.0"),
                 "kg");
 
         UserProductInfoDto result = usersProductService.addProduct(testUser.getId(), newProduct);
 
-        assertEquals("New Product", result.getProductName());
+        assertEquals("New Item", result.getProductName());
         assertEquals(new BigDecimal("2.0"), result.getQuantity());
 
         List<UsersProductEntity> userProducts = usersProductRepository.findAllByUserId(testUser.getId());

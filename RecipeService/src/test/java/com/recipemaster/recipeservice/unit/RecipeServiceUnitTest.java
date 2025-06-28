@@ -3,6 +3,7 @@ package com.recipemaster.recipeservice.unit;
 import com.recipemaster.dto.IngredientDto;
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
 import com.recipemaster.entities.UserEntity;
@@ -11,6 +12,7 @@ import com.recipemaster.recipeservice.repository.ProductRepository;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
+import com.recipemaster.recipeservice.service.ProductElasticService;
 import com.recipemaster.recipeservice.service.RecipeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +55,9 @@ class RecipeServiceUnitTest {
 
     @InjectMocks
     private RecipeService recipeService;
+
+    @Mock
+    private ProductElasticService productElasticService;
 
     @Test
     void testReturnOfAllRecipesWhenCategoryAbsent() {
@@ -108,7 +113,7 @@ class RecipeServiceUnitTest {
         product.setName("Test Product");
         product.setUnit("kg");
 
-        when(productRepository.findByName("Test Product")).thenReturn(Optional.of(product));
+        when(productElasticService.findOrCreate(any(),any())).thenReturn(product);
         when(recipeRepository.save(any(RecipeEntity.class))).thenAnswer(invocation -> {
             RecipeEntity saved = invocation.getArgument(0);
             saved.setId(1L);
@@ -122,23 +127,8 @@ class RecipeServiceUnitTest {
         assertEquals("Test Recipe", result.getTitle());
         assertEquals(1, result.getIngredients().size());
         assertEquals("Test Product", result.getIngredients().getFirst().getProductName());
-        verify(productRepository).findByName("Test Product");
+        verify(productElasticService).findOrCreate(any(),any());
         verify(recipeRepository).save(any(RecipeEntity.class));
-    }
-
-    @Test
-    void testAdditionOfRecipeWhenProductNotFound() {
-        RecipeInputDto inputDto = new RecipeInputDto();
-        IngredientDto ingredientInput = new IngredientDto();
-        ingredientInput.setProductName("Non-existent Product");
-        inputDto.setIngredients(Collections.singletonList(ingredientInput));
-
-        when(productRepository.findByName("Non-existent Product")).thenReturn(Optional.empty());
-
-        Exception exception = assertThrows(NoSuchElementException.class, () -> recipeService.addRecipe(inputDto));
-        assertEquals(ErrorMessage.INCORRECT_PRODUCT_NAME.getMessage(), exception.getMessage());
-        verify(productRepository).findByName("Non-existent Product");
-        verify(recipeRepository, never()).save(any());
     }
 
     @Test
@@ -147,7 +137,7 @@ class RecipeServiceUnitTest {
 
         when(usersProductRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
 
-        List<RecipeDto> result = recipeService.searchRecipesByUserProducts(userId);
+        List<RecipeMatchResponse> result = recipeService.searchRecipesByUserProducts(userId);
 
         assertTrue(result.isEmpty());
         verify(usersProductRepository).findAllByUserId(userId);

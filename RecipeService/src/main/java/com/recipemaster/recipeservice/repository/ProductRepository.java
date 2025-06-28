@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface ProductRepository extends CrudRepository<ProductEntity, Long> {
     Optional<ProductEntity> findByName(String productName);
+    Optional<ProductEntity> findByNameIgnoreCase(String productName);
 }

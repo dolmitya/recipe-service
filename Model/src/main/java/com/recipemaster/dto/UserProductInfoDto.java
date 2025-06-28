@@ -9,7 +9,8 @@ import java.math.BigDecimal;
 @Data
 @AllArgsConstructor
 public class UserProductInfoDto {
-    private String productName;
+    private Long id;
+    private String name;
     private BigDecimal quantity;
     private String unit;
 }

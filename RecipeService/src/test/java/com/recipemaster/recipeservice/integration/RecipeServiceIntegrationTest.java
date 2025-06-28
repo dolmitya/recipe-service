@@ -3,6 +3,7 @@ package com.recipemaster.recipeservice.integration;
 import com.recipemaster.dto.IngredientDto;
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
+import com.recipemaster.dto.responses.RecipeMatchResponse;
 import com.recipemaster.entities.IngredientEntity;
 import com.recipemaster.entities.ProductEntity;
 import com.recipemaster.entities.RecipeEntity;
@@ -145,16 +146,16 @@ class RecipeServiceIntegrationTest {
         usersProduct.setQuantity(new BigDecimal(2));
 
         usersProductRepository.save(usersProduct);
-        List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
+        List<RecipeMatchResponse> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
         assertEquals(1, result.size());
-        assertEquals("Test Recipe", result.getFirst().getTitle());
+        assertEquals("Test Recipe", result.getFirst().recipe().getTitle());
     }
 
     @Test
     void testSearchOfRecipesByUserProductsWithoutMatchingRecipes() {
 
-        List<RecipeDto> result = recipeService.searchRecipesByUserProducts(testUser.getId());
+        List<RecipeMatchResponse> result = recipeService.searchRecipesByUserProducts(testUser.getId());
 
         assertTrue(result.isEmpty());
     }
