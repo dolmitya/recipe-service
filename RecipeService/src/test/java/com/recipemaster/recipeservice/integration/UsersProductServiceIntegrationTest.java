@@ -103,13 +103,14 @@ class UsersProductServiceIntegrationTest {
     @Test
     void testAdditionWhenProductIsNew() {
         UserProductInfoDto newProduct = new UserProductInfoDto(
+                1L,
                 "New Item",
                 new BigDecimal("2.0"),
                 "kg");
 
         UserProductInfoDto result = usersProductService.addProduct(testUser.getId(), newProduct);
 
-        assertEquals("New Item", result.getProductName());
+        assertEquals("New Item", result.getName());
         assertEquals(new BigDecimal("2.0"), result.getQuantity());
 
         List<UsersProductEntity> userProducts = usersProductRepository.findAllByUserId(testUser.getId());
@@ -120,13 +121,14 @@ class UsersProductServiceIntegrationTest {
     @Test
     void testAdditionWhenProductExists() {
         UserProductInfoDto existingProduct = new UserProductInfoDto(
+                1L,
                 "Test Product",
                 new BigDecimal("0.5"),
                 "kg");
 
         UserProductInfoDto result = usersProductService.addProduct(testUser.getId(), existingProduct);
 
-        assertEquals("Test Product", result.getProductName());
+        assertEquals("Test Product", result.getName());
         assertEquals(new BigDecimal("2.0"), result.getQuantity());
 
         UsersProductEntity updatedProduct = usersProductRepository.findProductById(testUser.getId(), testProduct.getId())
@@ -138,6 +140,7 @@ class UsersProductServiceIntegrationTest {
     @Test
     void testUpdateWhenProductExists() {
         UserProductInfoDto updateDto = new UserProductInfoDto(
+                1L,
                 "Test Product",
                 new BigDecimal("3.0"),
                 "kg");
@@ -147,7 +150,7 @@ class UsersProductServiceIntegrationTest {
                 testProduct.getId(),
                 updateDto);
 
-        assertEquals("Test Product", result.getProductName());
+        assertEquals("Test Product", result.getName());
         assertEquals(new BigDecimal("3.0"), result.getQuantity());
 
         UsersProductEntity updatedProduct = usersProductRepository.findProductById(testUser.getId(), testProduct.getId())
