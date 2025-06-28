@@ -72,7 +72,7 @@ public class RecipeService {
     private Map<String, BigDecimal> fetchUserProductNames(Long userId) {
         return usersProductRepository.findAllByUserId(userId).stream()
                 .collect(Collectors.toMap(
-                        up -> up.getProduct().getName(),      // ключ — название продукта
+                        up -> up.getProduct().getName(),
                         UsersProductEntity::getQuantity,
                         BigDecimal::add
                 ));
