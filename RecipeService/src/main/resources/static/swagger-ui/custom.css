@@ -1,0 +1,40 @@
+/* Кастомные стили для Swagger UI - белый текст в ответах */
+.response-col_status {
+    color: white !important;
+}
+
+.response-col_description {
+    color: white !important;
+}
+
+.opblock-body pre {
+    color: white !important;
+    background-color: #333 !important;
+}
+
+.model-box {
+    color: white !important;
+    background-color: #333 !important;
+}
+
+.swagger-ui .opblock .opblock-summary-description {
+    color: white !important;
+}
+
+.swagger-ui table tbody tr td {
+    color: white !important;
+}
+
+/* Дополнительные стили для лучшей читаемости */
+.swagger-ui .response-control-media-type--accept-controller select {
+    color: white !important;
+    background-color: #333 !important;
+}
+
+.swagger-ui .btn {
+    color: white !important;
+}
+
+.swagger-ui .highlight-code {
+    color: white !important;
+}

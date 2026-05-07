@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -58,7 +59,7 @@ public class RecipeGenerator {
         String product = SAMPLE_PRODUCTS.get(rnd.nextInt(SAMPLE_PRODUCTS.size()));
         String unit = SAMPLE_UNITS.get(rnd.nextInt(SAMPLE_UNITS.size()));
         BigDecimal qty = BigDecimal.valueOf(1 + rnd.nextDouble() * 9)
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         IngredientDto ing = new IngredientDto();
         ing.setProductName(product);

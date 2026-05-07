@@ -12,6 +12,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +33,9 @@ public class RecipeEntity {
 
     @Column(name = "category")
     private String category;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal servings = BigDecimal.ONE;
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<IngredientEntity> ingredients = new ArrayList<>();

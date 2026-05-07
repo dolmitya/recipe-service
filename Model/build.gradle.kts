@@ -21,6 +21,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("com.fasterxml.jackson.core:jackson-annotations")
+    implementation("io.swagger.core.v3:swagger-annotations-jakarta:2.2.22")
 }
 
 tasks.test {

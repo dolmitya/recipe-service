@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { Ingredient } from '../../types';
 
 interface AddRecipeModalProps {
@@ -8,6 +8,7 @@ interface AddRecipeModalProps {
     title: string;
     description?: string;
     category?: string;
+    servings?: number;
     ingredients: Ingredient[];
   }) => void;
 }
@@ -17,21 +18,22 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
     title: '',
     description: '',
     category: '',
+    servings: '1',
   });
-  
+
   const [ingredients, setIngredients] = useState<Ingredient[]>([
-    { productName: '', quantity: 0, unit: '' }
+    { productName: '', quantity: 0, unit: '' },
   ]);
 
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
 
     try {
       const validIngredients = ingredients.filter(
-        ingredient => ingredient.productName.trim() && ingredient.quantity > 0
+        (ingredient) => ingredient.productName.trim() && ingredient.quantity > 0,
       );
 
       if (validIngredients.length === 0) {
@@ -43,6 +45,7 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
         title: formData.title,
         description: formData.description || undefined,
         category: formData.category || undefined,
+        servings: Number(formData.servings) || 1,
         ingredients: validIngredients,
       });
 
@@ -60,13 +63,13 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
 
   const removeIngredient = (index: number) => {
     if (ingredients.length > 1) {
-      setIngredients(ingredients.filter((_, i) => i !== index));
+      setIngredients(ingredients.filter((_, currentIndex) => currentIndex !== index));
     }
   };
 
   const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
-    const updated = ingredients.map((ingredient, i) => {
-      if (i === index) {
+    const updated = ingredients.map((ingredient, currentIndex) => {
+      if (currentIndex === index) {
         return { ...ingredient, [field]: value };
       }
       return ingredient;
@@ -75,84 +78,90 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center rounded-t-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white">
+        <div className="sticky top-0 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white p-6">
           <h2 className="text-2xl font-bold text-gray-900">Добавить новый рецепт</h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+            className="rounded-full bg-gray-50 p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
           >
-            <X className="w-6 h-6" />
+            <X className="h-6 w-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Название рецепта *
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Название рецепта *</label>
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, title: event.target.value })}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-green-500"
               placeholder="Введите название рецепта"
             />
           </div>
 
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Категория</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(event) => setFormData({ ...formData, category: event.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-green-500"
+                placeholder="Например: Завтрак"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Порции</label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={formData.servings}
+                onChange={(event) => setFormData({ ...formData, servings: event.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-green-500"
+                placeholder="1"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Описание
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Описание</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(event) => setFormData({ ...formData, description: event.target.value })}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+              className="w-full resize-none rounded-lg border border-gray-300 px-4 py-3 transition-all focus:border-transparent focus:ring-2 focus:ring-green-500"
               placeholder="Краткое описание рецепта"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Категория
-            </label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-              placeholder="Например: Завтрак, Обед, Ужин"
-            />
-          </div>
-
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Ингредиенты *
-              </label>
+            <div className="mb-4 flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">Ингредиенты *</label>
               <button
                 type="button"
                 onClick={addIngredient}
-                className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-1 text-sm"
+                className="flex items-center space-x-1 rounded-lg bg-green-500 px-3 py-1 text-sm text-white transition-colors hover:bg-green-600"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-4 w-4" />
                 <span>Добавить</span>
               </button>
             </div>
 
             <div className="space-y-3">
               {ingredients.map((ingredient, index) => (
-                <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                <div key={index} className="grid grid-cols-12 items-center gap-3">
                   <div className="col-span-5">
                     <input
                       type="text"
                       value={ingredient.productName}
-                      onChange={(e) => updateIngredient(index, 'productName', e.target.value)}
+                      onChange={(event) => updateIngredient(index, 'productName', event.target.value)}
                       placeholder="Название продукта"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                   <div className="col-span-3">
@@ -161,18 +170,18 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
                       step="0.1"
                       min="0"
                       value={ingredient.quantity || ''}
-                      onChange={(e) => updateIngredient(index, 'quantity', parseFloat(e.target.value) || 0)}
+                      onChange={(event) => updateIngredient(index, 'quantity', parseFloat(event.target.value) || 0)}
                       placeholder="Количество"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                   <div className="col-span-3">
                     <input
                       type="text"
                       value={ingredient.unit || ''}
-                      onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
+                      onChange={(event) => updateIngredient(index, 'unit', event.target.value)}
                       placeholder="Единица"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-green-500"
                     />
                   </div>
                   <div className="col-span-1">
@@ -180,9 +189,9 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
                       type="button"
                       onClick={() => removeIngredient(index)}
                       disabled={ingredients.length === 1}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -190,18 +199,18 @@ const AddRecipeModal: React.FC<AddRecipeModalProps> = ({ onClose, onSave }) => {
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 border-t border-gray-200 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="rounded-lg border border-gray-300 px-6 py-2 text-gray-700 transition-colors hover:bg-gray-50"
             >
               Отмена
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-gradient-to-r from-green-500 to-blue-500 px-6 py-2 font-medium text-white transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? 'Создание...' : 'Создать рецепт'}
             </button>

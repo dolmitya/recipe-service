@@ -6,6 +6,13 @@ app:
   base-url-auth: http://localhost:8189
 
 spring:
+  docker:
+    compose:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/recipe-service
+    username: postgres
+    password: postgres
   elasticsearch:
     uris: http://localhost:9200
     username: elastic

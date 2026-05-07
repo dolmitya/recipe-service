@@ -2,7 +2,12 @@ package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.RecipeDto;
 import com.recipemaster.dto.RecipeInputDto;
-import com.recipemaster.entities.*;
+import com.recipemaster.dto.responses.RecipeSuggestionDto;
+import com.recipemaster.entities.IngredientEntity;
+import com.recipemaster.entities.ProductEntity;
+import com.recipemaster.entities.RecipeEntity;
+import com.recipemaster.entities.UserEntity;
+import com.recipemaster.entities.UsersProductEntity;
 import com.recipemaster.recipeservice.repository.RecipeRepository;
 import com.recipemaster.recipeservice.repository.UserRepository;
 import com.recipemaster.recipeservice.repository.UsersProductRepository;
@@ -11,7 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToRecipeEntity;
@@ -19,17 +28,38 @@ import static com.recipemaster.recipeservice.mapper.RecipeMapper.recipeDTOToReci
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
+    private static final int TOP_N = 5;
+
     private final RecipeRepository recipeRepository;
     private final UserRepository userRepository;
     private final UsersProductRepository usersProductRepository;
     private final ProductElasticService productElasticService;
-    private static final int TOP_N = 5;
+    private final RecipeElasticService recipeElasticService;
 
     public List<RecipeDto> getAllRecipes(String category) {
-        List<RecipeEntity> recipes = (category == null || category.isEmpty())
-                ? recipeRepository.findAll()
-                : recipeRepository.findByCategory(category);
+        return getAllRecipes(category, null);
+    }
+
+    public List<RecipeDto> getAllRecipes(String category, String query) {
+        boolean hasCategory = category != null && !category.isBlank();
+        boolean hasQuery = query != null && !query.isBlank();
+
+        List<RecipeEntity> recipes;
+        if (hasCategory && hasQuery) {
+            return recipeElasticService.searchRecipes(query.trim(), category.trim());
+        } else if (hasCategory) {
+            recipes = recipeRepository.findByCategoryIgnoreCase(category.trim());
+        } else if (hasQuery) {
+            return recipeElasticService.searchRecipes(query.trim(), null);
+        } else {
+            recipes = recipeRepository.findAll();
+        }
+
         return recipes.stream().map(RecipeDto::fromEntity).toList();
+    }
+
+    public List<RecipeSuggestionDto> suggestRecipes(String query) {
+        return recipeElasticService.suggestRecipes(query);
     }
 
     public RecipeDto addRecipe(RecipeInputDto recipeDto) {
@@ -39,27 +69,32 @@ public class RecipeService {
         if (recipeDto.getIngredients() == null || recipeDto.getIngredients().isEmpty()) {
             throw new NoSuchElementException("Ingredients not provided");
         }
+        if (recipeDto.getServings() != null && recipeDto.getServings().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Servings must be greater than zero");
+        }
+
         RecipeEntity recipe = recipeDTOToRecipeEntity(recipeDto);
         List<IngredientEntity> ingredients = recipeDto.getIngredients().stream()
-                .map(rd -> {
+                .map(ingredientDto -> {
                     ProductEntity product = productElasticService.findOrCreate(
-                            rd.getProductName().toLowerCase(),
-                            rd.getUnit()
+                            ingredientDto.getProductName().toLowerCase(),
+                            ingredientDto.getUnit(),
+                            null
                     );
 
-                    IngredientEntity ing = new IngredientEntity();
-                    ing.setRecipe(recipe);
-                    ing.setQuantity(rd.getQuantity());
-                    ing.setProduct(product);
-                    return ing;
+                    IngredientEntity ingredient = new IngredientEntity();
+                    ingredient.setRecipe(recipe);
+                    ingredient.setQuantity(ingredientDto.getQuantity());
+                    ingredient.setProduct(product);
+                    return ingredient;
                 })
                 .toList();
 
         recipe.setIngredients(ingredients);
         RecipeEntity saved = recipeRepository.save(recipe);
+        recipeElasticService.indexRecipe(saved);
         return RecipeDto.fromEntity(saved);
     }
-
 
     public List<RecipeDto> searchRecipesByUserProducts(Long userId) {
         Map<String, BigDecimal> userProductNames = fetchUserProductNames(userId);
@@ -81,7 +116,7 @@ public class RecipeService {
     private List<RecipeDto> buildTopRecipeMatches(Map<String, BigDecimal> userProductNames) {
         return recipeRepository.findAll().stream()
                 .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
-                .filter(recipe -> recipe.getValue()>0)
+                .filter(recipe -> recipe.getValue() > 0)
                 .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
                 .limit(TOP_N)
                 .map(recipe -> RecipeDto.fromEntity(recipe.getKey()))
@@ -90,10 +125,10 @@ public class RecipeService {
 
     private Double calculateMatchedCount(RecipeEntity recipe, Map<String, BigDecimal> userProductNames) {
         return recipe.getIngredients().stream()
-                .mapToDouble(i -> {
-                    BigDecimal needed = i.getQuantity();
+                .mapToDouble(ingredient -> {
+                    BigDecimal needed = ingredient.getQuantity();
                     BigDecimal available = userProductNames.getOrDefault(
-                            i.getProduct().getName(),
+                            ingredient.getProduct().getName(),
                             BigDecimal.ZERO
                     );
                     if (needed.compareTo(BigDecimal.ZERO) <= 0) {

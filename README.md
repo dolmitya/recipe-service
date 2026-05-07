@@ -35,3 +35,4 @@
 | **Elasticsearch** | Поиск с морфологией и синонимами |
 | **Swagger/OpenAPI** | Документация API |
 | **Gradle** | Система сборки проекта |
+<!-- test comment: visible change -->

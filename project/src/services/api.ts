@@ -4,7 +4,7 @@ let authToken: string | null = localStorage.getItem('authToken');
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -42,7 +42,6 @@ export const clearAuthToken = () => {
 
 export const getAuthToken = () => authToken;
 
-// Auth API
 export const register = async (userData: {
   email: string;
   password: string;
@@ -52,11 +51,11 @@ export const register = async (userData: {
     method: 'POST',
     body: JSON.stringify(userData),
   });
-  
+
   if (response.token) {
     setAuthToken(response.token);
   }
-  
+
   return response;
 };
 
@@ -65,15 +64,14 @@ export const login = async (credentials: { email: string; password: string }) =>
     method: 'POST',
     body: JSON.stringify(credentials),
   });
-  
+
   if (response.token) {
     setAuthToken(response.token);
   }
-  
+
   return response;
 };
 
-// Products API
 export const getProducts = async () => {
   return apiRequest('/secured/products');
 };
@@ -82,6 +80,10 @@ export const createProduct = async (product: {
   name: string;
   quantity?: number;
   unit?: string;
+  caloriesPerUnit?: number;
+  proteinsPerUnit?: number;
+  fatsPerUnit?: number;
+  carbsPerUnit?: number;
 }) => {
   return apiRequest('/secured/products', {
     method: 'POST',
@@ -90,9 +92,13 @@ export const createProduct = async (product: {
 };
 
 export const updateProduct = async (id: number, product: {
-  name: string;
+  name?: string;
   quantity?: number;
   unit?: string;
+  caloriesPerUnit?: number;
+  proteinsPerUnit?: number;
+  fatsPerUnit?: number;
+  carbsPerUnit?: number;
 }) => {
   return apiRequest(`/secured/products/${id}`, {
     method: 'PUT',
@@ -106,16 +112,31 @@ export const deleteProduct = async (id: number) => {
   });
 };
 
-// Recipes API
-export const getRecipes = async (category?: string) => {
-  const params = category ? `?category=${encodeURIComponent(category)}` : '';
-  return apiRequest(`/secured/recipes${params}`);
+export const getProductSuggestions = async (query: string) => {
+  return apiRequest(`/secured/products/suggest?query=${encodeURIComponent(query)}`);
+};
+
+export const getRecipeSuggestions = async (query: string) => {
+  return apiRequest(`/secured/recipes/suggest?query=${encodeURIComponent(query)}`);
+};
+
+export const getRecipes = async (category?: string, query?: string) => {
+  const params = new URLSearchParams();
+  if (category) {
+    params.set('category', category);
+  }
+  if (query) {
+    params.set('query', query);
+  }
+  const queryString = params.toString();
+  return apiRequest(`/secured/recipes${queryString ? `?${queryString}` : ''}`);
 };
 
 export const createRecipe = async (recipe: {
   title: string;
   description?: string;
   category?: string;
+  servings?: number;
   ingredients: Array<{
     productName: string;
     quantity: number;
@@ -146,4 +167,27 @@ export const removeFromFavorites = async (recipeId: number) => {
 
 export const getFavoriteRecipes = async () => {
   return apiRequest('/secured/recipes/favorites');
+};
+
+export const getCalendarDay = async (date: string) => {
+  return apiRequest(`/secured/calendar?date=${encodeURIComponent(date)}`);
+};
+
+export const addCalendarEntry = async (entry: {
+  date: string;
+  productId?: number;
+  recipeId?: number;
+  quantity: number;
+  consumeFromFridge?: boolean;
+}) => {
+  return apiRequest('/secured/calendar/entries', {
+    method: 'POST',
+    body: JSON.stringify(entry),
+  });
+};
+
+export const deleteCalendarEntry = async (entryId: number) => {
+  return apiRequest(`/secured/calendar/entries/${entryId}`, {
+    method: 'DELETE',
+  });
 };

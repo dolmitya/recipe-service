@@ -40,6 +40,9 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UsersProductEntity> usersProducts = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MealEntryEntity> mealEntries = new ArrayList<>();
+
     public UserEntity(String email, String password, String fullName) {
         this.email = email;
         this.password = password;

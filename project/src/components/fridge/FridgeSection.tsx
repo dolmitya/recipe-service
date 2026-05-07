@@ -1,24 +1,142 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
-import { Product } from '../../types';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CalendarPlus, ChevronLeft, ChevronRight, Edit2, Flame, Plus, Save, Trash2, X } from 'lucide-react';
+import { Product, ProductSuggestion } from '../../types';
+import {
+  addCalendarEntry,
+  createProduct,
+  deleteProduct,
+  getProductSuggestions,
+  getProducts,
+  updateProduct,
+} from '../../services/api';
+import ConsumptionModal from '../calendar/ConsumptionModal';
+
+const PRODUCTS_PER_PAGE = 9;
+
+const formatNumber = (value?: number) =>
+  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value ?? 0);
+
+const emptyProductForm = {
+  name: '',
+  quantity: '',
+  unit: '',
+  caloriesPerUnit: '',
+  proteinsPerUnit: '',
+  fatsPerUnit: '',
+  carbsPerUnit: '',
+};
+
+const MacroBadge: React.FC<{ label: string; value?: number; accentClass: string }> = ({
+  label,
+  value,
+  accentClass,
+}) => (
+  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${accentClass}`}>
+    {label}: {formatNumber(value)}
+  </span>
+);
+
+const PaginationControls: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Назад
+      </button>
+
+      {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+        <button
+          key={page}
+          type="button"
+          onClick={() => onPageChange(page)}
+          className={`h-10 min-w-10 rounded-lg px-3 text-sm font-medium transition-colors ${
+            page === currentPage
+              ? 'bg-green-500 text-white'
+              : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          {page}
+        </button>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Вперёд
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+};
 
 const FridgeSection: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: '', quantity: '', unit: '' });
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
+  const [selectedSuggestion, setSelectedSuggestion] = useState<ProductSuggestion | null>(null);
+  const [newProduct, setNewProduct] = useState(emptyProductForm);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [productForCalendar, setProductForCalendar] = useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadProducts();
   }, []);
 
+  const normalizedProductName = useMemo(() => newProduct.name.trim().toLowerCase(), [newProduct.name]);
+
+  useEffect(() => {
+    if (!showAddForm) {
+      setSuggestions([]);
+      return;
+    }
+
+    if (selectedSuggestion && normalizedProductName === selectedSuggestion.name.toLowerCase()) {
+      return;
+    }
+
+    if (normalizedProductName.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const data = await getProductSuggestions(normalizedProductName);
+        setSuggestions(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Ошибка загрузки подсказок продуктов:', error);
+        setSuggestions([]);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedProductName, selectedSuggestion, showAddForm]);
+
   const loadProducts = async () => {
     try {
       const data = await getProducts();
-      setProducts(data);
+      const normalizedProducts = Array.isArray(data) ? data : [];
+      setProducts(normalizedProducts);
+      setCurrentPage(1);
     } catch (error) {
       console.error('Ошибка загрузки продуктов:', error);
     } finally {
@@ -26,183 +144,355 @@ const FridgeSection: React.FC = () => {
     }
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Сбрасываем прошлую ошибку
+  const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return products.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  }, [currentPage, products]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const resetAddForm = () => {
+    setNewProduct(emptyProductForm);
+    setSuggestions([]);
+    setSelectedSuggestion(null);
+    setErrorMessage(null);
+  };
+
+  const handleAddProduct = async (event: React.FormEvent) => {
+    event.preventDefault();
     setErrorMessage(null);
 
-    // Подготовка данных
-    const name = newProduct.name.trim();
-    const unit = newProduct.unit.trim() || undefined;
-    const qty = newProduct.quantity ? parseFloat(newProduct.quantity) : 0;
-    const productData = { name, quantity: qty, unit };
-
-    // Ищем существующий продукт
-    const existing = products.find(p =>
-        p.name.toLowerCase() === name.toLowerCase() &&
-        (p.unit || '') === (unit || '')
-    );
-
     try {
-      if (existing) {
-        // Обновляем количество
-        const updatedQty = (existing.quantity || 0) + qty;
-        const updated = await updateProduct(existing.id, {
-          name,
-          quantity: updatedQty,
-          unit,
-        });
-        setProducts(products.map(p => p.id === existing.id ? updated : p));
-      } else {
-        // Создаём новый
-        const created = await createProduct(productData);
-        setProducts([...products, created]);
-      }
-      // Очищаем форму и закрываем
-      setNewProduct({ name: '', quantity: '', unit: '' });
+      const created = await createProduct({
+        name: newProduct.name.trim(),
+        quantity: newProduct.quantity ? Number(newProduct.quantity) : 0,
+        unit: newProduct.unit.trim() || undefined,
+        caloriesPerUnit: newProduct.caloriesPerUnit ? Number(newProduct.caloriesPerUnit) : undefined,
+        proteinsPerUnit: newProduct.proteinsPerUnit ? Number(newProduct.proteinsPerUnit) : undefined,
+        fatsPerUnit: newProduct.fatsPerUnit ? Number(newProduct.fatsPerUnit) : undefined,
+        carbsPerUnit: newProduct.carbsPerUnit ? Number(newProduct.carbsPerUnit) : undefined,
+      });
+
+      setProducts((current) => {
+        const existingIndex = current.findIndex((product) => product.id === created.id);
+        if (existingIndex === -1) {
+          return [...current, created];
+        }
+
+        const next = [...current];
+        next[existingIndex] = created;
+        return next;
+      });
+
+      resetAddForm();
       setShowAddForm(false);
-    } catch (err: any) {
-      // Берём сообщение из ответа сервера или стандартное
-      const msg = err.response?.data?.message || err.message || 'Не удалось сохранить продукт';
-      setErrorMessage(msg);
-      console.error('Ошибка при добавлении/обновлении продукта:', err);
+      setCurrentPage(1);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Не удалось сохранить продукт.');
     }
   };
 
-  const handleUpdateProduct = async (id: number, updatedData: any) => {
+  const handleProductNameChange = (value: string) => {
+    if (selectedSuggestion && value.trim().toLowerCase() !== selectedSuggestion.name.toLowerCase()) {
+      setSelectedSuggestion(null);
+      setNewProduct((current) => ({
+        ...current,
+        name: value,
+        unit: '',
+        caloriesPerUnit: '',
+        proteinsPerUnit: '',
+        fatsPerUnit: '',
+        carbsPerUnit: '',
+      }));
+      return;
+    }
+
+    setNewProduct((current) => ({ ...current, name: value }));
+  };
+
+  const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
+    setSelectedSuggestion(suggestion);
+    setNewProduct((current) => ({
+      ...current,
+      name: suggestion.name,
+      unit: suggestion.unit || '',
+      caloriesPerUnit: suggestion.caloriesPerUnit != null ? suggestion.caloriesPerUnit.toString() : '',
+      proteinsPerUnit: suggestion.proteinsPerUnit != null ? suggestion.proteinsPerUnit.toString() : '',
+      fatsPerUnit: suggestion.fatsPerUnit != null ? suggestion.fatsPerUnit.toString() : '',
+      carbsPerUnit: suggestion.carbsPerUnit != null ? suggestion.carbsPerUnit.toString() : '',
+    }));
+    setSuggestions([]);
+  };
+
+  const handleUpdateProduct = async (id: number, updatedData: { quantity?: number }) => {
     try {
       setErrorMessage(null);
       const updated = await updateProduct(id, updatedData);
-      setProducts(products.map(p => p.id === id ? updated : p));
+      setProducts((current) => current.map((product) => (product.id === id ? updated : product)));
       setEditingId(null);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Не удалось обновить продукт';
-      setErrorMessage(msg);
-      console.error('Ошибка обновления продукта:', err);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Не удалось обновить продукт.');
     }
   };
 
   const handleDeleteProduct = async (id: number) => {
     try {
       await deleteProduct(id);
-      setProducts(products.filter(p => p.id !== id));
+      setProducts((current) => current.filter((product) => product.id !== id));
     } catch (error) {
       console.error('Ошибка удаления продукта:', error);
     }
   };
 
+  const handleAddToCalendar = async (payload: { date: string; quantity: number; consumeFromFridge?: boolean }) => {
+    if (!productForCalendar) {
+      return;
+    }
+
+    await addCalendarEntry({
+      date: payload.date,
+      productId: productForCalendar.id,
+      quantity: payload.quantity,
+      consumeFromFridge: payload.consumeFromFridge,
+    });
+
+    await loadProducts();
+  };
+
   if (loading) {
     return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500"></div>
+      </div>
     );
   }
 
   return (
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-8">
+    <div className="mx-auto max-w-6xl p-6">
+      <div className="mb-8 flex items-center justify-between gap-4">
+        <div>
           <h2 className="text-3xl font-bold text-gray-900">Мой холодильник</h2>
-          <button
-              onClick={() => {
-                setShowAddForm(true);
-                setErrorMessage(null);
-              }}
-              className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg font-medium hover:from-green-600 hover:to-blue-600 transition-all duration-200 flex items-center space-x-2 shadow-md"
-          >
-            <Plus className="w-5 h-5" />
+          <p className="mt-2 text-gray-500">
+            Калории и БЖУ задаются один раз на единицу продукта, дальше все значения считаются автоматически.
+          </p>
+          {products.length > 0 && (
+            <p className="mt-2 text-sm text-gray-500">
+              Показано {paginatedProducts.length} из {products.length} продуктов.
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => {
+            setShowAddForm(true);
+            resetAddForm();
+          }}
+          className="shrink-0 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 px-6 py-3 font-medium text-white shadow-md transition-all duration-200 hover:from-green-600 hover:to-blue-600"
+        >
+          <span className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
             <span>Добавить продукт</span>
-          </button>
-        </div>
-
-        {showAddForm && (
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
-              {/* Вывод ошибок */}
-              {errorMessage && (
-                  <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                    {errorMessage}
-                  </div>
-              )}
-
-              <h3 className="text-lg font-semibold mb-4">Добавить новый продукт</h3>
-              <form onSubmit={handleAddProduct} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input
-                    type="text"
-                    placeholder="Название продукта"
-                    value={newProduct.name}
-                    onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
-                    required
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                <input
-                    type="number"
-                    step="0.1"
-                    placeholder="Количество"
-                    value={newProduct.quantity}
-                    onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                <input
-                    type="text"
-                    placeholder="Единица измерения"
-                    value={newProduct.unit}
-                    onChange={e => setNewProduct({ ...newProduct, unit: e.target.value })}
-                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-                <div className="flex space-x-2">
-                  <button
-                      type="submit"
-                      className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-1"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>Сохранить</span>
-                  </button>
-                  <button
-                      type="button"
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setErrorMessage(null);
-                      }}
-                      className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center space-x-1"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Отмена</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map(product => (
-              <ProductCard
-                  key={product.id}
-                  product={product}
-                  isEditing={editingId === product.id}
-                  onEdit={() => {
-                    setEditingId(product.id);
-                    setErrorMessage(null);
-                  }}
-                  onSave={data => handleUpdateProduct(product.id, data)}
-                  onCancel={() => {
-                    setEditingId(null);
-                    setErrorMessage(null);
-                  }}
-                  onDelete={() => handleDeleteProduct(product.id)}
-              />
-          ))}
-        </div>
-
-        {products.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="w-12 h-12 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">Холодильник пуст</h3>
-              <p className="text-gray-500">Добавьте первый продукт, чтобы начать</p>
-            </div>
-        )}
+          </span>
+        </button>
       </div>
+
+      {showAddForm && (
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
+          {errorMessage && (
+            <div className="mb-4 rounded-lg bg-red-100 p-3 text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
+          <h3 className="mb-4 text-lg font-semibold">Новый продукт</h3>
+          <form onSubmit={handleAddProduct} className="grid grid-cols-1 gap-4 md:grid-cols-6">
+            <div className="relative md:col-span-2">
+              <input
+                type="text"
+                placeholder="Название"
+                value={newProduct.name}
+                onChange={(event) => handleProductNameChange(event.target.value)}
+                required
+                autoComplete="off"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500"
+              />
+
+              {suggestions.length > 0 && (
+                <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                  {suggestions.map((suggestion) => {
+                    const suggestionKey = `${suggestion.name}-${suggestion.unit || 'unitless'}`;
+                    return (
+                      <button
+                        key={suggestionKey}
+                        type="button"
+                        onClick={() => handleSelectSuggestion(suggestion)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-gray-50"
+                      >
+                        <div className="space-y-1">
+                          <div className="font-medium text-gray-900">{suggestion.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {(suggestion.unit || 'ед.')}{' · '}
+                            {formatNumber(suggestion.caloriesPerUnit)} ккал
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            <MacroBadge label="Б" value={suggestion.proteinsPerUnit} accentClass="bg-blue-50 text-blue-700" />
+                            <MacroBadge label="Ж" value={suggestion.fatsPerUnit} accentClass="bg-amber-50 text-amber-700" />
+                            <MacroBadge label="У" value={suggestion.carbsPerUnit} accentClass="bg-emerald-50 text-emerald-700" />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Количество"
+              value={newProduct.quantity}
+              onChange={(event) => setNewProduct({ ...newProduct, quantity: event.target.value })}
+              className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500"
+            />
+            <input
+              type="text"
+              placeholder="Единица"
+              value={newProduct.unit}
+              onChange={(event) => setNewProduct({ ...newProduct, unit: event.target.value })}
+              disabled={selectedSuggestion !== null}
+              className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500"
+            />
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Ккал за 1 ед."
+              value={newProduct.caloriesPerUnit}
+              onChange={(event) => setNewProduct({ ...newProduct, caloriesPerUnit: event.target.value })}
+              disabled={selectedSuggestion !== null}
+              className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500"
+            />
+            <div className="grid grid-cols-3 gap-3 md:col-span-6">
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Белки за 1 ед."
+                value={newProduct.proteinsPerUnit}
+                onChange={(event) => setNewProduct({ ...newProduct, proteinsPerUnit: event.target.value })}
+                disabled={selectedSuggestion !== null}
+                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500"
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Жиры за 1 ед."
+                value={newProduct.fatsPerUnit}
+                onChange={(event) => setNewProduct({ ...newProduct, fatsPerUnit: event.target.value })}
+                disabled={selectedSuggestion !== null}
+                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500"
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Углеводы за 1 ед."
+                value={newProduct.carbsPerUnit}
+                onChange={(event) => setNewProduct({ ...newProduct, carbsPerUnit: event.target.value })}
+                disabled={selectedSuggestion !== null}
+                className="rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 disabled:bg-gray-100 disabled:text-gray-500"
+              />
+            </div>
+
+            {selectedSuggestion && (
+              <p className="col-span-full text-sm text-gray-500">
+                Найден существующий продукт. Единица, калории и БЖУ подставлены автоматически, осталось указать количество.
+              </p>
+            )}
+
+            <div className="col-span-full mt-2 flex flex-wrap gap-2">
+              <button
+                type="submit"
+                className="rounded-lg bg-green-500 px-4 py-2 text-white transition-colors hover:bg-green-600"
+              >
+                <span className="flex items-center gap-1">
+                  <Save className="h-4 w-4" />
+                  <span>Сохранить</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddForm(false);
+                  resetAddForm();
+                }}
+                className="rounded-lg bg-gray-500 px-4 py-2 text-white transition-colors hover:bg-gray-600"
+              >
+                <span className="flex items-center gap-1">
+                  <X className="h-4 w-4" />
+                  <span>Отмена</span>
+                </span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {errorMessage && !showAddForm && (
+        <div className="mb-6 rounded-lg bg-red-100 p-3 text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {paginatedProducts.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            isEditing={editingId === product.id}
+            onEdit={() => {
+              setEditingId(product.id);
+              setErrorMessage(null);
+            }}
+            onSave={(data) => handleUpdateProduct(product.id, data)}
+            onCancel={() => {
+              setEditingId(null);
+              setErrorMessage(null);
+            }}
+            onDelete={() => handleDeleteProduct(product.id)}
+            onAddToCalendar={() => setProductForCalendar(product)}
+          />
+        ))}
+      </div>
+
+      <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+
+      {products.length === 0 && (
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+            <Plus className="h-12 w-12 text-gray-400" />
+          </div>
+          <h3 className="mb-2 text-xl font-semibold text-gray-600">Холодильник пуст</h3>
+          <p className="text-gray-500">Добавьте первый продукт, чтобы начать.</p>
+        </div>
+      )}
+
+      {productForCalendar && (
+        <ConsumptionModal
+          title="Добавить в календарь"
+          itemName={productForCalendar.name}
+          quantityLabel="Сколько съели"
+          unitLabel={productForCalendar.unit}
+          defaultQuantity={1}
+          consumeFromFridgeLabel="Списать продукт из холодильника"
+          defaultConsumeFromFridge={true}
+          onClose={() => setProductForCalendar(null)}
+          onSave={handleAddToCalendar}
+        />
+      )}
+    </div>
   );
 };
 
@@ -210,109 +500,140 @@ interface ProductCardProps {
   product: Product;
   isEditing: boolean;
   onEdit: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: { quantity?: number }) => void;
   onCancel: () => void;
   onDelete: () => void;
+  onAddToCalendar: () => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
-                                                   product,
-                                                   isEditing,
-                                                   onEdit,
-                                                   onSave,
-                                                   onCancel,
-                                                   onDelete,
-                                                 }) => {
+  product,
+  isEditing,
+  onEdit,
+  onSave,
+  onCancel,
+  onDelete,
+  onAddToCalendar,
+}) => {
   const [editData, setEditData] = useState({
-    name: product.name,
     quantity: product.quantity?.toString() || '',
-    unit: product.unit || '',
   });
+
+  useEffect(() => {
+    setEditData({
+      quantity: product.quantity?.toString() || '',
+    });
+  }, [product.quantity]);
 
   const handleSave = () => {
     onSave({
-      name: editData.name.trim(),
-      quantity: editData.quantity ? parseFloat(editData.quantity) : undefined,
-      unit: editData.unit.trim() || undefined,
+      quantity: editData.quantity ? Number(editData.quantity) : undefined,
     });
   };
 
   if (isEditing) {
     return (
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="space-y-3">
-            <input
-                type="text"
-                value={editData.name}
-                onChange={e => setEditData({ ...editData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Название"
-            />
-            <input
-                type="number"
-                step="0.1"
-                value={editData.quantity}
-                onChange={e => setEditData({ ...editData, quantity: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Количество"
-            />
-            <input
-                type="text"
-                value={editData.unit}
-                onChange={e => setEditData({ ...editData, unit: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Единица измерения"
-            />
-            <div className="flex space-x-2">
-              <button
-                  onClick={handleSave}
-                  className="bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-600 transition-colors flex items-center space-x-1 flex-1"
-              >
-                <Save className="w-4 h-4" />
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg">
+        <div className="space-y-3">
+          <div>
+            <p className="mb-1 text-sm font-medium text-gray-700">{product.name}</p>
+            {product.unit && <p className="text-xs text-gray-500">Единица: {product.unit}</p>}
+          </div>
+          <input
+            type="number"
+            step="0.1"
+            value={editData.quantity}
+            onChange={(event) => setEditData({ ...editData, quantity: event.target.value })}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500"
+            placeholder="Количество"
+          />
+          <div className="flex space-x-2">
+            <button
+              onClick={handleSave}
+              className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-white transition-colors hover:bg-green-600"
+            >
+              <span className="flex items-center justify-center gap-1">
+                <Save className="h-4 w-4" />
                 <span>Сохранить</span>
-              </button>
-              <button
-                  onClick={onCancel}
-                  className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center space-x-1 flex-1"
-              >
-                <X className="w-4 h-4" />
+              </span>
+            </button>
+            <button
+              onClick={onCancel}
+              className="flex-1 rounded-lg bg-gray-500 px-3 py-2 text-white transition-colors hover:bg-gray-600"
+            >
+              <span className="flex items-center justify-center gap-1">
+                <X className="h-4 w-4" />
                 <span>Отмена</span>
-              </button>
-            </div>
+              </span>
+            </button>
           </div>
         </div>
+      </div>
     );
   }
 
   return (
-      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 hover:shadow-xl transition-shadow duration-200">
-        <div className="flex justify-between items-start mb-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-lg transition-shadow duration-200 hover:shadow-xl">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
           <h3 className="text-lg font-semibold text-gray-900">{product.name}</h3>
-          <div className="flex space-x-1">
-            <button
-                onClick={onEdit}
-                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            >
-              <Edit2 className="w-4 h-4" />
-            </button>
-            <button
-                onClick={onDelete}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+          {product.unit && <p className="mt-1 text-sm text-gray-500">Единица: {product.unit}</p>}
+        </div>
+        <div className="flex shrink-0 space-x-1">
+          <button
+            onClick={onAddToCalendar}
+            className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50"
+          >
+            <CalendarPlus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onEdit}
+            className="rounded-lg p-2 text-blue-600 transition-colors hover:bg-blue-50"
+          >
+            <Edit2 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        {product.quantity != null && (
+          <p className="text-gray-600">
+            <span className="font-medium">Количество:</span> {formatNumber(product.quantity)}
+            {product.unit ? ` ${product.unit}` : ''}
+          </p>
+        )}
+
+        <div className="rounded-lg bg-gray-50 p-3">
+          <div className="mb-2 flex items-center gap-2 text-orange-600">
+            <Flame className="h-4 w-4" />
+            <span className="text-sm font-medium">
+              {formatNumber(product.caloriesPerUnit)} ккал за 1 {product.unit || 'ед.'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <MacroBadge label="Б" value={product.proteinsPerUnit} accentClass="bg-blue-100 text-blue-800" />
+            <MacroBadge label="Ж" value={product.fatsPerUnit} accentClass="bg-amber-100 text-amber-800" />
+            <MacroBadge label="У" value={product.carbsPerUnit} accentClass="bg-emerald-100 text-emerald-800" />
           </div>
         </div>
 
-        <div className="space-y-2">
-          {product.quantity != null && (
-              <p className="text-gray-600">
-                <span className="font-medium">Количество:</span> {product.quantity}
-                {product.unit && ` ${product.unit}`}
-              </p>
-          )}
+        <div className="rounded-lg border border-gray-200 p-3">
+          <p className="mb-2 text-sm font-medium text-gray-700">Всего в запасе</p>
+          <p className="text-sm text-gray-500">{formatNumber(product.totalCalories)} ккал</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <MacroBadge label="Б" value={product.totalProteins} accentClass="bg-blue-50 text-blue-700" />
+            <MacroBadge label="Ж" value={product.totalFats} accentClass="bg-amber-50 text-amber-700" />
+            <MacroBadge label="У" value={product.totalCarbs} accentClass="bg-emerald-50 text-emerald-700" />
+          </div>
         </div>
       </div>
+    </div>
   );
 };
 

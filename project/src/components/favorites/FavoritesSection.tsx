@@ -1,8 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, ChefHat } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Heart } from 'lucide-react';
 import { Recipe } from '../../types';
-import { getFavoriteRecipes, removeFromFavorites } from '../../services/api';
+import { addCalendarEntry, getFavoriteRecipes, removeFromFavorites } from '../../services/api';
 import RecipeModal from '../recipes/RecipeModal';
+
+const formatNumber = (value?: number) =>
+  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(value ?? 0);
+
+const MacroBadge: React.FC<{ label: string; value?: number; accentClass: string }> = ({
+  label,
+  value,
+  accentClass,
+}) => (
+  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${accentClass}`}>
+    {label}: {formatNumber(value)}
+  </span>
+);
 
 const FavoritesSection: React.FC = () => {
   const [favorites, setFavorites] = useState<Recipe[]>([]);
@@ -16,7 +29,7 @@ const FavoritesSection: React.FC = () => {
   const loadFavorites = async () => {
     try {
       const data = await getFavoriteRecipes();
-      setFavorites(data);
+      setFavorites(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Ошибка загрузки избранных рецептов:', error);
     } finally {
@@ -27,7 +40,7 @@ const FavoritesSection: React.FC = () => {
   const handleRemoveFromFavorites = async (recipeId: number) => {
     try {
       await removeFromFavorites(recipeId);
-      setFavorites(favorites.filter(recipe => recipe.id !== recipeId));
+      setFavorites((current) => current.filter((recipe) => recipe.id !== recipeId));
       if (selectedRecipe && selectedRecipe.id === recipeId) {
         setSelectedRecipe(null);
       }
@@ -36,25 +49,33 @@ const FavoritesSection: React.FC = () => {
     }
   };
 
+  const handleAddRecipeToCalendar = async (recipeId: number, payload: { date: string; quantity: number }) => {
+    await addCalendarEntry({
+      date: payload.date,
+      recipeId,
+      quantity: payload.quantity,
+    });
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center mb-8">
-        <Heart className="w-8 h-8 text-red-500 mr-3 fill-current" />
-        <h2 className="text-3xl font-bold text-gray-900">Любимые рецепты</h2>
-        <span className="ml-4 bg-red-100 text-red-800 text-sm px-3 py-1 rounded-full">
+    <div className="mx-auto max-w-6xl p-6">
+      <div className="mb-8 flex items-center">
+        <Heart className="mr-3 h-8 w-8 fill-current text-red-500" />
+        <h2 className="text-3xl font-bold text-gray-900">Избранные рецепты</h2>
+        <span className="ml-4 rounded-full bg-red-100 px-3 py-1 text-sm text-red-800">
           {favorites.length}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {favorites.map((recipe) => (
           <FavoriteRecipeCard
             key={recipe.id}
@@ -66,12 +87,12 @@ const FavoritesSection: React.FC = () => {
       </div>
 
       {favorites.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-12 h-12 text-red-300" />
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-red-50">
+            <Heart className="h-12 w-12 text-red-300" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">Нет избранных рецептов</h3>
-          <p className="text-gray-500">Добавьте рецепты в избранное, чтобы они появились здесь</p>
+          <h3 className="mb-2 text-xl font-semibold text-gray-600">Нет избранных рецептов</h3>
+          <p className="text-gray-500">Добавьте рецепты в избранное, чтобы они появились здесь.</p>
         </div>
       )}
 
@@ -81,6 +102,7 @@ const FavoritesSection: React.FC = () => {
           onClose={() => setSelectedRecipe(null)}
           isFavorite={true}
           onToggleFavorite={() => handleRemoveFromFavorites(selectedRecipe.id)}
+          onAddToCalendar={(payload) => handleAddRecipeToCalendar(selectedRecipe.id, payload)}
         />
       )}
     </div>
@@ -99,62 +121,49 @@ const FavoriteRecipeCard: React.FC<FavoriteRecipeCardProps> = ({
   onView,
 }) => {
   return (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 hover:shadow-xl transition-shadow duration-200">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg transition-shadow duration-200 hover:shadow-xl">
       <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{recipe.title}</h3>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h3 className="line-clamp-2 text-lg font-semibold text-gray-900">{recipe.title}</h3>
           <button
             onClick={onRemove}
-            className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-full transition-colors"
+            className="shrink-0 rounded-full bg-red-50 p-2 text-red-500 transition-colors hover:bg-red-100"
           >
-            <Heart className="w-5 h-5 fill-current" />
+            <Heart className="h-5 w-5 fill-current" />
           </button>
         </div>
 
         {recipe.description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-3">{recipe.description}</p>
+          <p className="mb-4 line-clamp-3 text-sm text-gray-600">{recipe.description}</p>
         )}
 
-        {recipe.category && (
-          <div className="mb-4">
-            <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {recipe.category && (
+            <span className="inline-block rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800">
               {recipe.category}
             </span>
-          </div>
-        )}
+          )}
+          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-xs text-orange-700">
+            {formatNumber(recipe.totalCalories)} ккал
+          </span>
+        </div>
 
-        <div className="mb-4">
-          <p className="text-sm text-gray-500 mb-2">
-            <ChefHat className="w-4 h-4 inline mr-1" />
-            Ингредиенты: {recipe.ingredients.length}
-          </p>
-          <div className="flex flex-wrap gap-1">
-            {recipe.ingredients.slice(0, 3).map((ingredient, index) => (
-              <span
-                key={index}
-                className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded"
-              >
-                {ingredient.productName}
-              </span>
-            ))}
-            {recipe.ingredients.length > 3 && (
-              <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                +{recipe.ingredients.length - 3} еще
-              </span>
-            )}
-          </div>
+        <div className="mb-4 flex flex-wrap gap-2">
+          <MacroBadge label="Б" value={recipe.totalProteins} accentClass="bg-blue-50 text-blue-700" />
+          <MacroBadge label="Ж" value={recipe.totalFats} accentClass="bg-amber-50 text-amber-700" />
+          <MacroBadge label="У" value={recipe.totalCarbs} accentClass="bg-emerald-50 text-emerald-700" />
         </div>
 
         <div className="flex space-x-2">
           <button
             onClick={onView}
-            className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:from-green-600 hover:to-blue-600 transition-all duration-200"
+            className="flex-1 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 px-4 py-2 font-medium text-white transition-all duration-200 hover:from-green-600 hover:to-blue-600"
           >
             Подробнее
           </button>
           <button
             onClick={onRemove}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            className="rounded-lg bg-red-500 px-4 py-2 text-white transition-colors hover:bg-red-600"
           >
             Убрать
           </button>

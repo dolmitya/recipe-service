@@ -5,6 +5,7 @@ import Navigation from './components/layout/Navigation';
 import FridgeSection from './components/fridge/FridgeSection';
 import RecipesSection from './components/recipes/RecipesSection';
 import FavoritesSection from './components/favorites/FavoritesSection';
+import CalendarSection from './components/calendar/CalendarSection';
 
 const MainApp: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -22,6 +23,8 @@ const MainApp: React.FC = () => {
         return <RecipesSection />;
       case 'favorites':
         return <FavoritesSection />;
+      case 'calendar':
+        return <CalendarSection />;
       default:
         return <FridgeSection />;
     }
@@ -30,9 +33,7 @@ const MainApp: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="py-8">
-        {renderContent()}
-      </main>
+      <main className="py-8">{renderContent()}</main>
     </div>
   );
 };
