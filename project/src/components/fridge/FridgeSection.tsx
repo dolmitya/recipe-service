@@ -1,5 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarPlus, ChevronLeft, ChevronRight, Edit2, Flame, Plus, Save, Trash2, X } from 'lucide-react';
+import {
+  CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  Flame,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { Product, ProductSuggestion } from '../../types';
 import {
   addCalendarEntry,
@@ -92,7 +103,9 @@ const FridgeSection: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
   const [selectedSuggestion, setSelectedSuggestion] = useState<ProductSuggestion | null>(null);
+  const [searchSuggestions, setSearchSuggestions] = useState<ProductSuggestion[]>([]);
   const [newProduct, setNewProduct] = useState(emptyProductForm);
+  const [searchQuery, setSearchQuery] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [productForCalendar, setProductForCalendar] = useState<Product | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -102,6 +115,7 @@ const FridgeSection: React.FC = () => {
   }, []);
 
   const normalizedProductName = useMemo(() => newProduct.name.trim().toLowerCase(), [newProduct.name]);
+  const normalizedSearchQuery = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
 
   useEffect(() => {
     if (!showAddForm) {
@@ -131,6 +145,27 @@ const FridgeSection: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, [normalizedProductName, selectedSuggestion, showAddForm]);
 
+  useEffect(() => {
+    if (normalizedSearchQuery.length === 0) {
+      setSearchSuggestions([]);
+      setCurrentPage(1);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const data = await getProductSuggestions(normalizedSearchQuery);
+        setSearchSuggestions(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Ошибка поиска продуктов в холодильнике:', error);
+        setSearchSuggestions([]);
+      }
+    }, 250);
+
+    setCurrentPage(1);
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedSearchQuery]);
+
   const loadProducts = async () => {
     try {
       const data = await getProducts();
@@ -144,11 +179,24 @@ const FridgeSection: React.FC = () => {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const filteredProducts = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return products;
+    }
+
+    const suggestionNames = new Set(searchSuggestions.map((suggestion) => suggestion.name.trim().toLowerCase()));
+
+    return products.filter((product) => {
+      const normalizedName = product.name.trim().toLowerCase();
+      return normalizedName.includes(normalizedSearchQuery) || suggestionNames.has(normalizedName);
+    });
+  }, [normalizedSearchQuery, products, searchSuggestions]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
-    return products.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
-  }, [currentPage, products]);
+    return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  }, [currentPage, filteredProducts]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -280,9 +328,10 @@ const FridgeSection: React.FC = () => {
           <p className="mt-2 text-gray-500">
             Калории и БЖУ задаются один раз на единицу продукта, дальше все значения считаются автоматически.
           </p>
-          {products.length > 0 && (
+          {filteredProducts.length > 0 && (
             <p className="mt-2 text-sm text-gray-500">
-              Показано {paginatedProducts.length} из {products.length} продуктов.
+              Показано {paginatedProducts.length} из {filteredProducts.length}
+              {filteredProducts.length !== products.length ? ` найденных` : ''} продуктов.
             </p>
           )}
         </div>
@@ -298,6 +347,19 @@ const FridgeSection: React.FC = () => {
             <span>Добавить продукт</span>
           </span>
         </button>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Поиск продукта в холодильнике"
+            className="w-full rounded-lg border border-gray-300 py-3 pl-10 pr-4 focus:border-transparent focus:ring-2 focus:ring-green-500"
+          />
+        </div>
       </div>
 
       {showAddForm && (
@@ -468,6 +530,13 @@ const FridgeSection: React.FC = () => {
       </div>
 
       <PaginationControls currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+
+      {filteredProducts.length === 0 && normalizedSearchQuery && (
+        <div className="py-12 text-center">
+          <h3 className="mb-2 text-xl font-semibold text-gray-600">Ничего не найдено</h3>
+          <p className="text-gray-500">Попробуйте другой запрос для поиска продукта в холодильнике.</p>
+        </div>
+      )}
 
       {products.length === 0 && (
         <div className="py-12 text-center">

@@ -8,6 +8,12 @@ export interface AuthToken {
   token: string;
 }
 
+export interface UserProfile {
+  id: number;
+  email: string;
+  fullName?: string;
+}
+
 export interface Product {
   id: number;
   name: string;

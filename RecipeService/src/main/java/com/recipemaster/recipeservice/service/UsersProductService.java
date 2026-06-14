@@ -33,9 +33,8 @@ public class UsersProductService {
     }
 
     public UserProductInfoDto addProduct(Long userId, UserProductInfoDto productInputDto) {
-        productInputDto.setName(productInputDto.getName().toLowerCase());
         UserEntity user = userRepository.findById(userId).orElseThrow(
-                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage()));
+                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_ID.getMessage(userId)));
 
         ProductEntity product = productElasticService.findOrCreate(
                 productInputDto.getName(),

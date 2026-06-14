@@ -7,6 +7,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -31,8 +34,9 @@ public class RecipeEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "category")
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private RecipeCategoryEntity recipeCategory;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal servings = BigDecimal.ONE;
@@ -47,7 +51,17 @@ public class RecipeEntity {
 
     public RecipeEntity(String title, String category, String description) {
         this.title = title;
-        this.category = category;
+        setCategory(category);
         this.description = description;
+    }
+
+    public String getCategory() {
+        return recipeCategory == null ? null : recipeCategory.getName();
+    }
+
+    public void setCategory(String category) {
+        this.recipeCategory = category == null || category.isBlank()
+                ? null
+                : new RecipeCategoryEntity(category);
     }
 }

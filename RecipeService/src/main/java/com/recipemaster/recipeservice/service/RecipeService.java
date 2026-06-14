@@ -35,6 +35,13 @@ public class RecipeService {
     private final UsersProductRepository usersProductRepository;
     private final ProductElasticService productElasticService;
     private final RecipeElasticService recipeElasticService;
+    private final RecipeCategoryService recipeCategoryService;
+
+    private record RecipeMatch(RecipeEntity recipe,
+                               double score,
+                               long matchedIngredients,
+                               int totalIngredients) {
+    }
 
     public List<RecipeDto> getAllRecipes(String category) {
         return getAllRecipes(category, null);
@@ -46,9 +53,9 @@ public class RecipeService {
 
         List<RecipeEntity> recipes;
         if (hasCategory && hasQuery) {
-            return recipeElasticService.searchRecipes(query.trim(), category.trim());
+            return recipeElasticService.searchRecipes(query.trim(), recipeCategoryService.normalizeName(category));
         } else if (hasCategory) {
-            recipes = recipeRepository.findByCategoryIgnoreCase(category.trim());
+            recipes = recipeRepository.findByRecipeCategoryName(recipeCategoryService.normalizeName(category));
         } else if (hasQuery) {
             return recipeElasticService.searchRecipes(query.trim(), null);
         } else {
@@ -74,10 +81,11 @@ public class RecipeService {
         }
 
         RecipeEntity recipe = recipeDTOToRecipeEntity(recipeDto);
+        recipe.setRecipeCategory(recipeCategoryService.findOrCreate(recipeDto.getCategory()));
         List<IngredientEntity> ingredients = recipeDto.getIngredients().stream()
                 .map(ingredientDto -> {
                     ProductEntity product = productElasticService.findOrCreate(
-                            ingredientDto.getProductName().toLowerCase(),
+                            ingredientDto.getProductName(),
                             ingredientDto.getUnit(),
                             null
                     );
@@ -115,29 +123,48 @@ public class RecipeService {
 
     private List<RecipeDto> buildTopRecipeMatches(Map<String, BigDecimal> userProductNames) {
         return recipeRepository.findAll().stream()
-                .map(recipe -> Map.entry(recipe, calculateMatchedCount(recipe, userProductNames)))
-                .filter(recipe -> recipe.getValue() > 0)
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .map(recipe -> calculateRecipeMatch(recipe, userProductNames))
+                .filter(match -> match.score() > 0)
+                .sorted(Comparator
+                        .comparingDouble(RecipeMatch::score).reversed()
+                        .thenComparing(RecipeMatch::matchedIngredients, Comparator.reverseOrder())
+                        .thenComparingInt(RecipeMatch::totalIngredients))
                 .limit(TOP_N)
-                .map(recipe -> RecipeDto.fromEntity(recipe.getKey()))
+                .map(match -> RecipeDto.fromEntity(match.recipe()))
                 .toList();
     }
 
-    private Double calculateMatchedCount(RecipeEntity recipe, Map<String, BigDecimal> userProductNames) {
-        return recipe.getIngredients().stream()
-                .mapToDouble(ingredient -> {
-                    BigDecimal needed = ingredient.getQuantity();
-                    BigDecimal available = userProductNames.getOrDefault(
-                            ingredient.getProduct().getName(),
-                            BigDecimal.ZERO
-                    );
-                    if (needed.compareTo(BigDecimal.ZERO) <= 0) {
-                        return 0d;
-                    }
-                    double fraction = available.doubleValue() / needed.doubleValue();
-                    return Math.min(1d, fraction);
-                })
-                .sum();
+    private RecipeMatch calculateRecipeMatch(RecipeEntity recipe, Map<String, BigDecimal> userProductNames) {
+        int totalIngredients = recipe.getIngredients().size();
+        if (totalIngredients == 0) {
+            return new RecipeMatch(recipe, 0d, 0, 0);
+        }
+
+        double totalCoverage = 0d;
+        long matchedIngredients = 0;
+        for (IngredientEntity ingredient : recipe.getIngredients()) {
+            double ingredientScore = calculateIngredientCoverage(ingredient, userProductNames);
+            totalCoverage += ingredientScore;
+            if (ingredientScore > 0d) {
+                matchedIngredients++;
+            }
+        }
+
+        double normalizedScore = totalCoverage / totalIngredients;
+        return new RecipeMatch(recipe, normalizedScore, matchedIngredients, totalIngredients);
+    }
+
+    private double calculateIngredientCoverage(IngredientEntity ingredient, Map<String, BigDecimal> userProductNames) {
+        BigDecimal needed = ingredient.getQuantity();
+        BigDecimal available = userProductNames.getOrDefault(
+                ingredient.getProduct().getName(),
+                BigDecimal.ZERO
+        );
+        if (needed.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0d;
+        }
+        double fraction = available.doubleValue() / needed.doubleValue();
+        return Math.min(1d, fraction);
     }
 
     @Transactional

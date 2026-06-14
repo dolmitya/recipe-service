@@ -10,7 +10,7 @@ spring:
     compose:
       enabled: false
   datasource:
-    url: jdbc:postgresql://localhost:5432/recipe-service
+    url: jdbc:postgresql://localhost:5433/recipe-service
     username: postgres
     password: postgres
   elasticsearch:

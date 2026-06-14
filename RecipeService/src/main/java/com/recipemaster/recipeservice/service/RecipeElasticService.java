@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -97,6 +98,7 @@ public class RecipeElasticService {
     }
 
     private boolean matchesCategory(RecipeEntity recipe, String category) {
-        return recipe.getCategory() != null && recipe.getCategory().equalsIgnoreCase(category.trim());
+        return recipe.getCategory() != null
+                && recipe.getCategory().equals(category.trim().toLowerCase(Locale.ROOT));
     }
 }

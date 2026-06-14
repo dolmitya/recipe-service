@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 public class RecipeMapper {
     public static RecipeEntity recipeDTOToRecipeEntity(RecipeInputDto recipeDto) {
         RecipeEntity recipe = new RecipeEntity();
-        recipe.setCategory(recipeDto.getCategory());
         recipe.setDescription(recipeDto.getDescription());
         recipe.setTitle(recipeDto.getTitle());
         recipe.setServings(recipeDto.getServings() != null && recipeDto.getServings().compareTo(BigDecimal.ZERO) > 0

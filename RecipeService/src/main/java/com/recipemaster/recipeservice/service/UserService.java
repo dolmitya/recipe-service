@@ -1,6 +1,7 @@
 package com.recipemaster.recipeservice.service;
 
 import com.recipemaster.dto.UserDetailsDto;
+import com.recipemaster.dto.UserProfileDto;
 import com.recipemaster.dto.UserDto;
 import com.recipemaster.entities.UserEntity;
 import com.recipemaster.enums.ErrorMessage;
@@ -41,6 +42,12 @@ public class UserService implements UserDetailsService {
         UserEntity user = userRepository.findByEmail(email).orElseThrow(
                 () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_EMAIL.getMessage()));
         return new UserDetailsDto(user.getId(), user.getEmail());
+    }
+
+    public UserProfileDto getProfileByEmail(String email) {
+        UserEntity user = userRepository.findByEmail(email).orElseThrow(
+                () -> new NoSuchElementException(ErrorMessage.USER_NOT_FOUND_BY_EMAIL.getMessage()));
+        return new UserProfileDto(user.getId(), user.getEmail(), user.getFullName());
     }
 
     @Override

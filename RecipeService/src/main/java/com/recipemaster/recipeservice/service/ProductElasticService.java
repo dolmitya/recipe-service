@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.recipemaster.recipeservice.utils.ProductNameNormalizer.normalizeDisplayName;
+
 @Service
 @RequiredArgsConstructor
 public class ProductElasticService {
@@ -40,55 +42,24 @@ public class ProductElasticService {
                                       BigDecimal proteinsPerUnit,
                                       BigDecimal fatsPerUnit,
                                       BigDecimal carbsPerUnit) {
-        ProductEntity fromDb = findBestMatchingProduct(name, unit);
+        String normalizedName = normalizeName(name);
+        String normalizedUnit = normalizeUnit(unit);
+
+        ProductEntity fromDb = findBestMatchingProduct(normalizedName, normalizedUnit);
         if (fromDb != null) {
-            return enrichProduct(fromDb, unit, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
+            return enrichProduct(fromDb, normalizedUnit, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
         }
 
-        ProductEntity fromEs = searchInElastic(name, unit, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
-        if (fromEs != null) {
-            return fromEs;
-        }
-
-        ProductEntity saved = createProductInDb(name, unit, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
+        ProductEntity saved = createProductInDb(
+                normalizedName,
+                normalizedUnit,
+                caloriesPerUnit,
+                proteinsPerUnit,
+                fatsPerUnit,
+                carbsPerUnit
+        );
         indexInElastic(saved);
         return saved;
-    }
-
-    private ProductEntity searchInElastic(String name,
-                                          String unit,
-                                          BigDecimal caloriesPerUnit,
-                                          BigDecimal proteinsPerUnit,
-                                          BigDecimal fatsPerUnit,
-                                          BigDecimal carbsPerUnit) {
-        try {
-            SearchResponse<ProductElasticDocument> response = elasticsearchClient.search(s -> s
-                            .index("products")
-                            .query(q -> q
-                                    .match(m -> m
-                                            .field("name")
-                                            .query(name)
-                                    )
-                            ),
-                    ProductElasticDocument.class
-            );
-
-            if (!response.hits().hits().isEmpty()) {
-                ProductElasticDocument hit = response.hits().hits().get(0).source();
-                ProductEntity product = Optional.ofNullable(findBestMatchingProduct(hit.getName(), unit))
-                        .orElseGet(() -> {
-                            ProductEntity entity = new ProductEntity();
-                            entity.setName(hit.getName());
-                            entity.setUnit(unit);
-                            applyNutrition(entity, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
-                            return productRepository.save(entity);
-                        });
-                return enrichProduct(product, unit, caloriesPerUnit, proteinsPerUnit, fatsPerUnit, carbsPerUnit);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Ошибка при поиске в Elasticsearch", e);
-        }
-        return null;
     }
 
     private ProductEntity createProductInDb(String name,
@@ -149,7 +120,13 @@ public class ProductElasticService {
                 "Carbs for this product do not match the existing value"
         );
 
-        return changed ? productRepository.save(product) : product;
+        if (!changed) {
+            return product;
+        }
+
+        ProductEntity saved = productRepository.save(product);
+        indexInElastic(saved);
+        return saved;
     }
 
     private boolean mergeNutritionValue(BigDecimal existingValue,
@@ -196,7 +173,7 @@ public class ProductElasticService {
 
     private ProductEntity findBestMatchingProduct(String name, String unit) {
         return productRepository.findAllByNameIgnoreCase(name).stream()
-                .filter(product -> unit == null || unit.isBlank() || unit.equals(product.getUnit()))
+                .filter(product -> unit == null || unit.equals(product.getUnit()))
                 .max(Comparator
                         .comparing((ProductEntity product) -> Optional.ofNullable(product.getCaloriesPerUnit()).orElse(BigDecimal.ZERO))
                         .thenComparing(ProductEntity::getId))
@@ -229,6 +206,8 @@ public class ProductElasticService {
             return List.of();
         }
 
+        String normalizedPrefix = prefix.trim();
+
         try {
             SearchResponse<ProductElasticDocument> response = elasticsearchClient.search(s -> s
                             .index("products")
@@ -236,7 +215,7 @@ public class ProductElasticService {
                             .query(q -> q
                                     .matchPhrasePrefix(m -> m
                                             .field("name")
-                                            .query(prefix.trim())
+                                            .query(normalizedPrefix)
                                     )
                             ),
                     ProductElasticDocument.class
@@ -265,12 +244,17 @@ public class ProductElasticService {
                 }
             }
 
-            return deduplicated.values().stream()
+            List<ProductEntity> suggestions = deduplicated.values().stream()
                     .limit(10)
                     .collect(Collectors.toList());
+            if (!suggestions.isEmpty()) {
+                return suggestions;
+            }
         } catch (IOException e) {
-            throw new RuntimeException("Ошибка при поиске подсказок продуктов в Elasticsearch", e);
+            return suggestProductsFromDatabase(normalizedPrefix);
         }
+
+        return suggestProductsFromDatabase(normalizedPrefix);
     }
 
     private int compareSuggestionPriority(ProductEntity left, ProductEntity right) {
@@ -282,5 +266,30 @@ public class ProductElasticService {
 
     private String buildSuggestionKey(ProductEntity product) {
         return product.getName().toLowerCase(Locale.ROOT) + "|" + Optional.ofNullable(product.getUnit()).orElse("");
+    }
+
+    private List<ProductEntity> suggestProductsFromDatabase(String prefix) {
+        Map<String, ProductEntity> deduplicated = new LinkedHashMap<>();
+        for (ProductEntity product : productRepository.findTop20ByNameStartingWithIgnoreCaseOrderByNameAscIdAsc(prefix)) {
+            String key = buildSuggestionKey(product);
+            ProductEntity existing = deduplicated.get(key);
+            if (existing == null || compareSuggestionPriority(product, existing) > 0) {
+                deduplicated.put(key, product);
+            }
+        }
+        return deduplicated.values().stream()
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
+    private String normalizeName(String name) {
+        return normalizeDisplayName(name);
+    }
+
+    private String normalizeUnit(String unit) {
+        if (unit == null || unit.isBlank()) {
+            return null;
+        }
+        return unit.trim();
     }
 }

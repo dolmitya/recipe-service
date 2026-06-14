@@ -72,6 +72,10 @@ export const login = async (credentials: { email: string; password: string }) =>
   return response;
 };
 
+export const getCurrentUserProfile = async () => {
+  return apiRequest('/secured/users/me');
+};
+
 export const getProducts = async () => {
   return apiRequest('/secured/products');
 };
